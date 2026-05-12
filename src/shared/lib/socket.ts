@@ -16,8 +16,9 @@ export const getSocket = (userId: string, accessToken?: string | null, getCursor
     if (socket) {
       socket.disconnect();
     }
-    
+
     socket = io(BASE_URL, {
+      path: '/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
     });
@@ -31,9 +32,9 @@ export const getSocket = (userId: string, accessToken?: string | null, getCursor
             channelId: c.channelId,
             lastSequence: c.lastKnownSequence
           }));
-          
+
           socket?.emit(SocketEvent.SYNC_NOTIFICATIONS, { syncRequests }, (response: SyncResponse) => {
-             console.log('Sync complete:', response);
+            console.log('Sync complete:', response);
           });
         }
       }

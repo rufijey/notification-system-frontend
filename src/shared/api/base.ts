@@ -1,6 +1,7 @@
 import { createApi, type BaseQueryFn } from '@reduxjs/toolkit/query/react';
 
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const BASE_URL = import.meta.env.VITE_API_URL;
+export const API_URL = BASE_URL + '/api';
 
 let _accessToken: string | null = null;
 let isRefreshing = false;
@@ -34,7 +35,7 @@ export const $api = async (endpoint: string, init: CustomRequestInit = {}): Prom
     credentials: 'include', // Ensure HttpOnly cookies (RT) are sent/received
   };
 
-  const url = `${BASE_URL}${endpoint}`;
+  const url = `${API_URL}${endpoint}`;
   let response = await fetch(url, config);
 
   // Handle 401 Unauthorized
@@ -57,7 +58,7 @@ export const $api = async (endpoint: string, init: CustomRequestInit = {}): Prom
 
     try {
       // Attempt silent refresh
-      const refreshResponse = await fetch(`${BASE_URL}/users/refresh`, {
+      const refreshResponse = await fetch(`${API_URL}/users/refresh`, {
         method: 'POST',
         credentials: 'include',
       });
