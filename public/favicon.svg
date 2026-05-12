@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <!-- Brand-consistent gradient from purple to deep indigo -->
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#863bff" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+  </defs>
+  <!-- Beautiful outer circle with premium gradient stroke and translucent glassmorphic fill -->
+  <circle cx="12" cy="12" r="10" stroke="url(#brandGrad)" stroke-width="2.2" fill="rgba(134, 59, 255, 0.08)" />
+  
+  <!-- Redesigned larger and bolder tapered exclamation mark (scaled up by 30% for high visibility) -->
+  <path d="M10.5 6.5 C10.5 5.7 11.2 5.0 12 5.0 C12.8 5.0 13.5 5.7 13.5 6.5 L12.7 13.0 C12.7 13.4 12.4 13.7 12 13.7 C11.6 13.7 11.3 13.4 11.3 13.0 Z" fill="url(#brandGrad)" stroke="none" />
+  
+  <!-- Redesigned larger exclamation dot -->
+  <circle cx="12" cy="17.5" r="1.5" fill="url(#brandGrad)" stroke="none" />
+</svg>

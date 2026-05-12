@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Perfect bold warning triangle with padding and translucent red background fill -->
+  <polygon points="12 3 3 21 21 21" stroke="#ff3b30" stroke-width="2.2" fill="rgba(255, 59, 48, 0.15)" stroke-linejoin="round" />
+  
+  <!-- Exactly identical premium tapered exclamation mark, shifted down by 1.0px for optical centering inside the triangle -->
+  <path d="M10.9 9.2 C10.9 8.6 11.4 8.2 12 8.2 C12.6 8.2 13.1 8.6 13.1 9.2 L12.5 13.7 C12.5 14 12.2 14.2 12 14.2 C11.8 14.2 11.5 14 11.5 13.7 Z" fill="#ff3b30" stroke="none" />
+  
+  <!-- Matching exclamation dot shifted down by 1.0px -->
+  <circle cx="12" cy="17.2" r="1.2" fill="#ff3b30" stroke="none" />
+</svg>
