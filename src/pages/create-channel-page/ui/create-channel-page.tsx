@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Plus, Users, ShieldCheck, HelpCircle, ArrowLeft } from 'lucide-react';
 import { type RootState } from '@/app/providers/store';
 import { Sidebar } from '@/widgets/sidebar';
 import { Button, Input } from '@/shared';
@@ -54,14 +54,24 @@ export const CreateChannelPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
+    <div className="flex h-screen bg-neutral-950 text-white overflow-hidden w-full">
       <Sidebar
         selectedChannelId={null}
         onSelectChannel={handleSelectContact}
+        className="hidden md:flex"
       />
 
       {/* Main Content Area (Full page creator) */}
-      <div className="flex-1 overflow-y-auto bg-neutral-950 flex flex-col justify-center items-center p-6">
+      <div className="flex-1 overflow-y-auto bg-neutral-950 flex flex-col justify-center items-center p-6 relative w-full h-full">
+        {/* Mobile back button */}
+        <button
+          onClick={() => navigate(PageRoutes.channelBase)}
+          className="absolute top-4 left-4 md:hidden p-2 text-neutral-400 hover:text-white hover:bg-neutral-900 border border-neutral-900 rounded-full cursor-pointer transition-all"
+          title="Back to Chats"
+        >
+          <ArrowLeft size={18} />
+        </button>
+
         <div className="max-w-xl w-full space-y-8 bg-neutral-900/40 border border-neutral-900/30 p-8 rounded-2xl shadow-xl backdrop-blur-sm">
           {/* Header */}
           <div className="text-center space-y-2">

@@ -7,8 +7,10 @@ import { TopProgressBar } from '@/shared';
 const LoginPage = lazy(() => import('../../pages/login-page').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('../../pages/register-page').then(m => ({ default: m.RegisterPage })));
 const ChannelPage = lazy(() => import('../../pages/channel-page').then(m => ({ default: m.ChannelPage })));
+const ChannelMembersPage = lazy(() => import('../../pages/channel-members-page').then(m => ({ default: m.ChannelMembersPage })));
 const CreateChannelPage = lazy(() => import('../../pages/create-channel-page').then(m => ({ default: m.CreateChannelPage })));
 const GlobalNotificationsPage = lazy(() => import('../../pages/global-notifications-page').then(m => ({ default: m.GlobalNotificationsPage })));
+const ProfilePage = lazy(() => import('../../pages/profile-page').then(m => ({ default: m.ProfilePage })));
 
 export const AppRouter = () => {
   return (
@@ -23,10 +25,12 @@ export const AppRouter = () => {
         <Route path={PageRoutes.register} element={<RegisterPage />} />
 
         <Route element={<ProtectedRoute />}>
+          <Route path={PageRoutes.channelMembers} element={<ChannelMembersPage />} />
           <Route path={PageRoutes.channelDetails} element={<ChannelPage />} />
           <Route path={PageRoutes.channelBase} element={<ChannelPage />} />
           <Route path={PageRoutes.createChannel} element={<CreateChannelPage />} />
           <Route path={PageRoutes.globalNotifications} element={<GlobalNotificationsPage />} />
+          <Route path={PageRoutes.profile} element={<ProfilePage />} />
         </Route>
 
         <Route path="*" element={<Navigate to={PageRoutes.channelBase} replace />} />

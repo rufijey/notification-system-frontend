@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Copy, Check, Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@/shared';
+import { PageRoutes } from '@/shared/config';
 import { LogoutButton } from '@/features/auth/logout';
 import { requestNotificationPermission } from '@/shared/lib/browser/notifications';
 
@@ -11,8 +13,10 @@ interface ProfileHeaderProps {
 
 export const ProfileHeader = ({ currentUserId, fullName }: ProfileHeaderProps) => {
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
 
-  const handleCopy = () => {
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
     navigator.clipboard.writeText(currentUserId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -20,7 +24,11 @@ export const ProfileHeader = ({ currentUserId, fullName }: ProfileHeaderProps) =
 
   return (
     <div className="h-[72px] px-4 border-b border-neutral-900/40 bg-neutral-900 flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-3 overflow-hidden min-w-0">
+      <div
+        onClick={() => navigate(PageRoutes.profile)}
+        className="flex items-center gap-3 overflow-hidden min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
+        title="View Profile Settings"
+      >
         <Avatar name={fullName || currentUserId} />
         <div className="min-w-0 flex flex-col">
           <span className="font-semibold text-sm text-white truncate leading-tight">

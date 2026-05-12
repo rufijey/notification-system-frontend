@@ -110,15 +110,18 @@ export const createChannelUpdatedListener = (
   userId: string,
   updateCachedData: (cb: (draft: Channel[]) => void) => void
 ) => {
-  return (payload: { channelId: string; userId: string; role: 'ADMIN' | 'PUBLISHER' | 'SUBSCRIBER' }) => {
-    if (payload.userId === userId) {
-      updateCachedData((draft) => {
-        const channel = draft.find(c => c.channelId === payload.channelId);
-        if (channel) {
+  return (payload: { channelId: string; userId?: string; role?: 'ADMIN' | 'PUBLISHER' | 'SUBSCRIBER'; title?: string }) => {
+    updateCachedData((draft) => {
+      const channel = draft.find(c => c.channelId === payload.channelId);
+      if (channel) {
+        if (payload.userId === userId && payload.role) {
           channel.role = payload.role;
         }
-      });
-    }
+        if (payload.title !== undefined) {
+          channel.title = payload.title;
+        }
+      }
+    });
   };
 };
 

@@ -18,14 +18,16 @@ export const GlobalNotificationsPage = () => {
   };
 
   return (
-    <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
+    <div className="flex h-screen bg-neutral-950 text-white overflow-hidden w-full">
       <Sidebar
         selectedChannelId={null}
         onSelectChannel={handleSelectContact}
+        className="hidden md:flex"
       />
 
       <GlobalNotifications
         onNavigateToChannel={handleSelectContact}
+        onBackClick={() => navigate(PageRoutes.channelBase)}
       />
     </div>
   );

@@ -7,6 +7,7 @@ export const ApiRoutes = {
     register: '/users/register',
     logout: '/users/logout',
     refresh: '/users/refresh',
+    updateProfile: '/users/profile',
   },
   notifications: {
     history: (channelId: string) => `/notifications/history/${encodeURIComponent(channelId)}`,
@@ -22,5 +23,6 @@ export const ApiRoutes = {
     roleUpdate: (channelId: string, userId: string) => `/notifications/channels/${encodeURIComponent(channelId)}/members/${encodeURIComponent(userId)}/role`,
     search: (query: string) => `/notifications/channels/search?query=${encodeURIComponent(query)}`,
     details: (channelId: string) => `/notifications/channels/${encodeURIComponent(channelId)}`,
+    rename: (channelId: string) => `/notifications/channels/${encodeURIComponent(channelId)}/title`,
   },
 } as const;

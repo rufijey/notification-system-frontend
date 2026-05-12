@@ -51,6 +51,9 @@ export const userSlice = createSlice({
       state.isAuth = true;
       state.isInit = true;
     },
+    setFullName: (state, action: PayloadAction<string>) => {
+      state.fullName = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -84,5 +87,5 @@ export const userSlice = createSlice({
   },
 });
 
-export const { setAuth, logout, setInitialized, setUserId } = userSlice.actions;
+export const { setAuth, logout, setInitialized, setUserId, setFullName } = userSlice.actions;
 export default userSlice.reducer;

@@ -10,15 +10,19 @@ import {
   useInviteUserMutation,
   useLeaveChannelMutation,
   useGetChannelMembersQuery,
+  useRenameChannelMutation,
 } from '@/entities/notifications/api';
 import { NotificationForm } from '@/features/send-notification';
 import { Bell, BellOff } from 'lucide-react';
 import { Loader, Button } from '@/shared';
+import { useNavigate } from 'react-router-dom';
+import { PageRoutes } from '@/shared/config';
 
 import { ChannelHeader } from './components/channel-header';
 import { MembersList } from './components/members-list';
 import { InviteModal } from './components/invite-modal';
 import { LeaveModal } from './components/leave-modal';
+import { RenameModal } from './components/rename-modal';
 import { ThreadBar } from './components/thread-bar';
 import { MessageFeed } from './components/message-feed';
 
@@ -29,17 +33,20 @@ interface NotificationWindowProps {
 }
 
 export const NotificationWindow = ({ userId, channelId, isActive = false }: NotificationWindowProps) => {
+  const navigate = useNavigate();
   const { data: channels = [], isLoading: isChannelsLoading } = useGetChannelsQuery(userId);
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [inviteUser] = useInviteUserMutation();
   const [leaveChannel] = useLeaveChannelMutation();
   const [updateRole] = useUpdateMemberRoleMutation();
+  const [renameChannel] = useRenameChannelMutation();
   const [loadMoreHistory, { isLoading: isLoadingMore }] = useLoadMoreHistoryMutation();
   const [joinChannel, { isLoading: isJoining }] = useJoinChannelMutation();
 
   const [showMembers, setShowMembers] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
 
   const [searchVal, setSearchVal] = useState('');
   const [debouncedSearchVal, setDebouncedSearchVal] = useState('');
@@ -194,10 +201,12 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
         setShowMembers={setShowMembers}
         onInviteClick={() => setInviteModalOpen(true)}
         onLeaveClick={() => setLeaveModalOpen(true)}
+        onRenameClick={() => setRenameModalOpen(true)}
         searchVal={searchVal}
         setSearchVal={setSearchVal}
         showSearch={showSearch}
         setShowSearch={setShowSearch}
+        onBackClick={() => navigate(PageRoutes.channelBase)}
       />
 
       {showMembers && (
@@ -332,6 +341,13 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
         isOpen={leaveModalOpen}
         onClose={() => setLeaveModalOpen(false)}
         onLeave={() => leaveChannel({ channelId: channelId! })}
+      />
+
+      <RenameModal
+        isOpen={renameModalOpen}
+        onClose={() => setRenameModalOpen(false)}
+        onRename={(newTitle) => renameChannel({ channelId: channelId!, title: newTitle })}
+        currentTitle={title}
       />
 
     </div>

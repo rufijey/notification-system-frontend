@@ -10,9 +10,10 @@ import { useGetChannelsQuery } from '@/entities/notifications/api';
 interface SidebarProps {
   selectedChannelId: string | null;
   onSelectChannel: (channelId: string) => void;
+  className?: string;
 }
 
-export const Sidebar = ({ selectedChannelId, onSelectChannel }: SidebarProps) => {
+export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: SidebarProps) => {
   const currentUserId = useSelector((state: RootState) => state.user.currentUserId);
   const fullName = useSelector((state: RootState) => state.user.fullName);
   const location = useLocation();
@@ -32,7 +33,7 @@ export const Sidebar = ({ selectedChannelId, onSelectChannel }: SidebarProps) =>
   const isNotificationsActive = location.pathname.startsWith(PageRoutes.globalNotifications);
 
   return (
-    <div className="flex flex-col h-full border-r border-neutral-900/40 bg-neutral-900 w-80 shrink-0">
+    <div className={`flex flex-col h-full border-r border-neutral-900/40 bg-neutral-900 w-full md:w-80 md:shrink-0 ${className || ''}`}>
       {/* 1. Profile block and logout header */}
       <ProfileHeader currentUserId={currentUserId} fullName={fullName} />
 

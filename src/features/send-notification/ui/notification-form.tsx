@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { Send } from 'lucide-react';
 import { useSendNotificationMutation } from '@/entities/notifications/api';
 import { Button } from '@/shared';

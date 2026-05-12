@@ -74,6 +74,15 @@ export const channelsApi = baseApi.injectEndpoints({
     }),
     getChannelDetails: build.query<{ channelId: string; title: string; memberCount: number }, string>({
       query: (channelId) => ({ url: ApiRoutes.channels.details(channelId) }),
+      providesTags: ['Channels'],
+    }),
+    renameChannel: build.mutation<void, { channelId: string; title: string }>({
+      query: ({ channelId, title }) => ({
+        url: ApiRoutes.channels.rename(channelId),
+        method: 'PATCH',
+        body: { title },
+      }),
+      invalidatesTags: ['Channels'],
     }),
   }),
 });
@@ -84,4 +93,5 @@ export const {
   useJoinChannelMutation,
   useSearchChannelsQuery,
   useGetChannelDetailsQuery,
+  useRenameChannelMutation,
 } = channelsApi;

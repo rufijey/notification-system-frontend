@@ -9,9 +9,10 @@ import { GlobalNotificationsList } from './components/global-notifications-list'
 
 interface GlobalNotificationsProps {
   onNavigateToChannel: (channelId: string) => void;
+  onBackClick?: () => void;
 }
 
-export const GlobalNotifications = ({ onNavigateToChannel }: GlobalNotificationsProps) => {
+export const GlobalNotifications = ({ onNavigateToChannel, onBackClick }: GlobalNotificationsProps) => {
   const [searchVal, setSearchVal] = useState('');
   const [debouncedSearchVal, setDebouncedSearchVal] = useState('');
 
@@ -62,7 +63,7 @@ export const GlobalNotifications = ({ onNavigateToChannel }: GlobalNotifications
 
   return (
     <div className="flex-1 flex flex-col h-full bg-neutral-950 text-white">
-      <GlobalNotificationsHeader />
+      <GlobalNotificationsHeader onBackClick={onBackClick} />
 
       <GlobalNotificationsControlBar
         searchVal={searchVal}
