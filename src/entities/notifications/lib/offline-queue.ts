@@ -85,7 +85,7 @@ export const updateHistoryCacheForChannel = (
 
 let isProcessingQueue = false;
 let retryCount = 0;
-let backoffTimeout: NodeJS.Timeout | null = null;
+let backoffTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const processOfflineQueue = async (dispatch: AppDispatch, getState: () => MinimalState) => {
   if (isProcessingQueue) return;

@@ -24,7 +24,6 @@ export const NotificationBubble = ({
   replyCount = 0,
   onReply,
   isHighlighted = false,
-  isNew = false,
 }: NotificationBubbleProps) => {
   const dispatch = useDispatch<AppDispatch>();
 
