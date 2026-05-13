@@ -1,6 +1,7 @@
 import { io, type Socket } from 'socket.io-client';
 import { SocketEvent } from '../../entities/notifications/model/constants';
 import type { NotificationCursor, Notification } from '../../entities/notifications/model/types';
+import { BASE_URL } from '../api/base';
 
 interface SyncResponse {
   notifications?: Notification[];
@@ -16,7 +17,7 @@ export const getSocket = (userId: string, accessToken?: string | null, getCursor
       socket.disconnect();
     }
 
-    socket = io('http://13.60.117.244:80', {
+    socket = io(BASE_URL, {
       path: '/api/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
