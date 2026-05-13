@@ -17,7 +17,7 @@ export const getSocket = (userId: string, accessToken?: string | null, getCursor
       socket.disconnect();
     }
 
-    socket = io('http://13.60.117.244:3000', {
+    socket = io('http://13.60.117.244:80', {
       path: '/api/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
