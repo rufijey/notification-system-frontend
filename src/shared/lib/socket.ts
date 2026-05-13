@@ -18,7 +18,7 @@ export const getSocket = (userId: string, accessToken?: string | null, getCursor
     }
 
     socket = io(BASE_URL, {
-      path: '/socket.io',
+      path: '/api/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
     });
