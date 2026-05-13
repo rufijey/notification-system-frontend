@@ -11,7 +11,12 @@ interface SyncResponse {
 let socket: Socket | null = null;
 let currentSocketUserId: string | null = null;
 
-export const getSocket = (userId: string, accessToken?: string | null, getCursors?: () => NotificationCursor[]): Socket => {
+export const getSocket = (
+  userId: string,
+  accessToken?: string | null,
+  getCursors?: () => NotificationCursor[],
+  onSyncComplete?: (notifications: Notification[]) => void
+): Socket => {
   if (!socket || currentSocketUserId !== userId) {
     if (socket) {
       socket.disconnect();
@@ -35,6 +40,9 @@ export const getSocket = (userId: string, accessToken?: string | null, getCursor
 
           socket?.emit(SocketEvent.SYNC_NOTIFICATIONS, { syncRequests }, (response: SyncResponse) => {
             console.log('Sync complete:', response);
+            if (response?.notifications && onSyncComplete) {
+              onSyncComplete(response.notifications);
+            }
           });
         }
       }

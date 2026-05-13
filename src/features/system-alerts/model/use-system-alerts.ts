@@ -6,7 +6,7 @@ import { requestNotificationPermission } from '@/shared/lib/browser/notification
 import { registerAndSubscribePush } from '@/shared/lib/browser/web-push';
 import { getSocket } from '@/shared/lib/socket';
 import { useGetChannelsQuery } from '@/entities/notifications/api';
-import { processOfflineQueue } from '@/entities/notifications/lib/offline-queue';
+import { processOfflineQueue, updateHistoryCacheForChannel } from '@/entities/notifications/lib/offline-queue';
 
 export const useSystemAlerts = () => {
   const dispatch = useDispatch();
@@ -44,7 +44,62 @@ export const useSystemAlerts = () => {
   useEffect(() => {
     if (!userId || !accessToken) return;
 
-    const socket = getSocket(userId, accessToken);
+    const getCursors = () => {
+      const state = store.getState();
+      const queries = (state as any).api?.queries || {};
+      const cursors: { channelId: string; lastKnownSequence: number }[] = [];
+
+      Object.keys(queries).forEach((key) => {
+        if (key.startsWith('getHistory(')) {
+          try {
+            const argStr = key.substring(11, key.length - 1);
+            const args = JSON.parse(argStr);
+            const queryData = queries[key]?.data as { items?: { sequence: number }[] } | undefined;
+            if (args.channelId && queryData?.items && queryData.items.length > 0) {
+              let maxSeq = 0;
+              queryData.items.forEach((item) => {
+                if (item.sequence > maxSeq) maxSeq = item.sequence;
+              });
+              cursors.push({
+                channelId: args.channelId,
+                lastKnownSequence: maxSeq,
+              });
+            }
+          } catch {}
+        }
+      });
+      return cursors;
+    };
+
+    const handleSyncComplete = (notifications: any[]) => {
+      if (!notifications || notifications.length === 0) return;
+      console.log(`[Sync] Received ${notifications.length} missed notifications`);
+
+      const state = store.getState();
+      const currentUserId = state.user.currentUserId;
+      if (!currentUserId) return;
+
+      const byChannel: Record<string, any[]> = {};
+      notifications.forEach((n) => {
+        if (!byChannel[n.channelId]) byChannel[n.channelId] = [];
+        byChannel[n.channelId].push(n);
+      });
+
+      Object.entries(byChannel).forEach(([channelId, notifs]) => {
+        updateHistoryCacheForChannel(dispatch, store.getState, currentUserId, channelId, (draft: any) => {
+          if (!draft || !draft.items) return;
+          notifs.forEach((notif) => {
+            const existingIndex = draft.items.findIndex((x: any) => x.id === notif.id);
+            if (existingIndex === -1) {
+              draft.items.push(notif);
+            }
+          });
+          draft.items.sort((a: any, b: any) => a.sequence - b.sequence);
+        });
+      });
+    };
+
+    const socket = getSocket(userId, accessToken, getCursors, handleSyncComplete);
 
     const handleConnect = () => {
       console.log('Socket connected. Flushing outbox...');

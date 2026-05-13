@@ -84,14 +84,28 @@ export const updateHistoryCacheForChannel = (
 };
 
 let isProcessingQueue = false;
+let retryCount = 0;
+let backoffTimeout: NodeJS.Timeout | null = null;
 
 export const processOfflineQueue = async (dispatch: AppDispatch, getState: () => MinimalState) => {
   if (isProcessingQueue) return;
   const queue = getOfflineQueue();
-  if (queue.length === 0) return;
+  if (queue.length === 0) {
+    retryCount = 0;
+    if (backoffTimeout) {
+      clearTimeout(backoffTimeout);
+      backoffTimeout = null;
+    }
+    return;
+  }
 
   isProcessingQueue = true;
-  console.log(`[Offline Queue] Processing ${queue.length} items...`);
+  if (backoffTimeout) {
+    clearTimeout(backoffTimeout);
+    backoffTimeout = null;
+  }
+
+  console.log(`[Offline Queue] Processing ${queue.length} items (Attempt ${retryCount + 1})...`);
 
   for (const msg of queue) {
     try {
@@ -119,6 +133,7 @@ export const processOfflineQueue = async (dispatch: AppDispatch, getState: () =>
 
       // Successful send, safe to remove
       removeFromOfflineQueue(msg.clientNotificationId);
+      retryCount = 0; // Reset backoff on success
     } catch (error) {
       console.error(`[Offline Queue] Failed to send queued message ${msg.clientNotificationId}:`, error);
 
@@ -132,10 +147,16 @@ export const processOfflineQueue = async (dispatch: AppDispatch, getState: () =>
         }
       });
 
-      // If we are still disconnected, stop processing the rest of the queue to maintain order
-      if (!navigator.onLine) {
-        break;
-      }
+      retryCount += 1;
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+      console.log(`[Offline Queue] Network unstable. Scheduling backoff retry in ${delay / 1000}s...`);
+
+      backoffTimeout = setTimeout(() => {
+        processOfflineQueue(dispatch, getState);
+      }, delay);
+
+      // Break immediately on any failure to preserve strict message order in threads
+      break;
     }
   }
 

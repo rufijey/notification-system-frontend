@@ -83,7 +83,7 @@ export const notificationsApi = baseApi.injectEndpoints({
         } catch { }
       },
     }),
-    sendNotification: build.mutation<void, { senderId: string; channelId: string; notification: string; clientNotificationId?: string; priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; parentNotificationId?: string }>({
+    sendNotification: build.mutation<{ success: boolean; status: 'sent' | 'queued'; notification?: Notification }, { senderId: string; channelId: string; notification: string; clientNotificationId?: string; priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; parentNotificationId?: string }>({
       query: ({ senderId, channelId, notification, clientNotificationId, priority, parentNotificationId }) => ({
         url: ApiRoutes.notifications.send(senderId),
         method: 'POST',
@@ -121,7 +121,20 @@ export const notificationsApi = baseApi.injectEndpoints({
         });
 
         try {
-          await queryFulfilled;
+          const { data } = await queryFulfilled;
+          if (data?.notification) {
+            updateHistoryCacheForChannel(dispatch, getState, senderId, channelId, (draft: any) => {
+              if (!draft || !draft.items) return;
+              const itemIndex = draft.items.findIndex((x: any) => x.clientNotificationId === finalClientNotificationId);
+              if (itemIndex !== -1) {
+                draft.items.splice(itemIndex, 1);
+              }
+              const existingIndex = draft.items.findIndex((x: any) => x.id === data.notification!.id);
+              if (existingIndex === -1) {
+                draft.items.push(data.notification);
+              }
+            });
+          }
         } catch (err: any) {
           console.error('[sendNotification] Error caught:', err);
 
