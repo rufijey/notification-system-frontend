@@ -59,7 +59,7 @@ export const ReadStatusTracker = ({
     }
 
     return () => observer.disconnect();
-  }, [id, userId, status, isMe, markAsRead]);
+  }, [id, userId, status, isMe, markAsRead, isChannelActive]);
 
   return <div ref={elementRef}>{children}</div>;
 };

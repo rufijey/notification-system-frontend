@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useLayoutEffect } from 'react';
+import { useEffect, useRef, useCallback, useLayoutEffect, useState } from 'react';
 import { Loader } from '@/shared';
 import { NotificationBubble, ReadStatusTracker } from '@/entities/notifications';
 import type { Notification, ChannelMember } from '../../../../entities/notifications/model/types';
@@ -42,6 +42,12 @@ export const MessageFeed = ({
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const isLoadingMoreRef = useRef(false);
   const initialScrollDone = useRef(false);
+  const isAtBottomRef = useRef(true);
+
+  // State to capture the first unread message when opening the chat
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const prevChannelIdRef = useRef<string | null>(null);
+  const hasCapturedInitialUnreadRef = useRef(false);
 
   // Refs for tracking scroll size and positions for perfect infinite scroll restoration
   const lastScrollHeightRef = useRef<number>(0);
@@ -51,13 +57,6 @@ export const MessageFeed = ({
 
   // Scroll to bottom on initial load, thread switch, and subsequent new messages
   const lastNotificationId = displayedNotifications[displayedNotifications.length - 1]?.id;
-
-  // Update the tracked last message ID after all render effects have processed
-  useEffect(() => {
-    if (lastNotificationId) {
-      prevLastNotificationIdRef.current = lastNotificationId;
-    }
-  }, [lastNotificationId]);
 
   // Scroll to highlighted message
   useEffect(() => {
@@ -72,47 +71,87 @@ export const MessageFeed = ({
     }
   }, [highlightMessageId, displayedNotifications]);
 
-  // 1. Synchronous scroll-to-bottom for own messages to prevent layout flicker (jerk) before paint
+  // Reset unread message tracker on channel change
+  useEffect(() => {
+    if (prevChannelIdRef.current !== channelId) {
+      setFirstUnreadId(null);
+      hasCapturedInitialUnreadRef.current = false;
+      prevChannelIdRef.current = channelId;
+    }
+  }, [channelId]);
+
+  // Capture the first unread message when history is loaded
+  useEffect(() => {
+    if (!isHistoryLoading && displayedNotifications.length > 0 && !hasCapturedInitialUnreadRef.current) {
+      const firstUnread = displayedNotifications.find(
+        (msg) => msg.senderId !== userId && msg.status !== 'READ'
+      );
+      if (firstUnread) {
+        setFirstUnreadId(firstUnread.id);
+      }
+      hasCapturedInitialUnreadRef.current = true;
+    }
+  }, [isHistoryLoading, displayedNotifications, userId]);
+
+  // Unified Scroll Handling (Initial load, Sender, and Recipient updates)
   useLayoutEffect(() => {
     if (isHistoryLoading || !lastNotificationId || !scrollRef.current) return;
 
+    const scrollEl = scrollRef.current;
+
+    // Handle initial load scroll
     if (!initialScrollDone.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const firstUnread = displayedNotifications.find(
+        (msg) => msg.senderId !== userId && msg.status !== 'READ'
+      );
+
+      if (firstUnread) {
+        const el = document.getElementById(`msg-${firstUnread.id}`);
+        if (el) {
+          scrollEl.scrollTop = el.offsetTop - 20;
+          initialScrollDone.current = true;
+          isAtBottomRef.current = false;
+          prevLastNotificationIdRef.current = lastNotificationId;
+          return;
+        }
+      }
+
+      // Default: scroll to bottom
+      scrollEl.scrollTop = scrollEl.scrollHeight;
       initialScrollDone.current = true;
+      isAtBottomRef.current = true;
+      prevLastNotificationIdRef.current = lastNotificationId;
       return;
     }
 
-    // Only scroll to bottom if a brand new message was appended and we are not highlighting a search result
     const isNewMessage = prevLastNotificationIdRef.current !== lastNotificationId;
     if (isNewMessage && !highlightMessageId) {
-      const isLastMessageMe = displayedNotifications[displayedNotifications.length - 1]?.senderId === userId;
-      if (isLastMessageMe) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const lastMsg = displayedNotifications[displayedNotifications.length - 1];
+      const isLastMessageMe = lastMsg?.senderId === userId;
+
+      // If a new message arrives and the tab is hidden (user is not looking at it),
+      // mark it as the start of new notifications.
+      if (!isLastMessageMe && document.visibilityState !== 'visible') {
+        if (!firstUnreadId) {
+          setFirstUnreadId(lastMsg.id);
+        }
       }
-    }
-  }, [isHistoryLoading, lastNotificationId, highlightMessageId, userId, displayedNotifications]);
 
-  // 2. Smooth scroll-to-bottom for other users' messages
-  useEffect(() => {
-    if (isHistoryLoading || !lastNotificationId || !scrollRef.current) return;
-
-    // Only scroll to bottom if a brand new message was appended and we are not highlighting a search result
-    const isNewMessage = prevLastNotificationIdRef.current !== lastNotificationId;
-    if (isNewMessage && !highlightMessageId) {
-      const isLastMessageMe = displayedNotifications[displayedNotifications.length - 1]?.senderId === userId;
-      if (!isLastMessageMe) {
-        const timer = setTimeout(() => {
+      if (isLastMessageMe || isAtBottomRef.current) {
+        requestAnimationFrame(() => {
           if (scrollRef.current) {
             scrollRef.current.scrollTo({
               top: scrollRef.current.scrollHeight,
               behavior: 'smooth',
             });
           }
-        }, 50);
-        return () => clearTimeout(timer);
+        });
+        isAtBottomRef.current = true;
       }
     }
-  }, [isHistoryLoading, lastNotificationId, highlightMessageId, userId, displayedNotifications]);
+
+    prevLastNotificationIdRef.current = lastNotificationId;
+  }, [isHistoryLoading, lastNotificationId, highlightMessageId, userId, displayedNotifications, firstUnreadId]);
 
   // Keep scroll anchored to bottom on resize (e.g. when textarea auto-grows/shrinks or keyboard opens)
   useEffect(() => {
@@ -131,6 +170,7 @@ export const MessageFeed = ({
           const isAtBottom = scrollEl.scrollHeight - scrollEl.scrollTop - lastHeight < 120;
           if (isAtBottom) {
             scrollEl.scrollTop = scrollEl.scrollHeight;
+            isAtBottomRef.current = true;
           }
         }
         lastHeight = newHeight;
@@ -162,6 +202,10 @@ export const MessageFeed = ({
       lastScrollHeightRef.current = scrollEl.scrollHeight;
       lastScrollTopRef.current = scrollEl.scrollTop;
     }
+
+    // Check if the user is scrolled to the bottom (within 100px threshold)
+    const isAtBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 100;
+    isAtBottomRef.current = isAtBottom;
   }, []);
 
   // Reset scroll tracker on channel change
@@ -175,6 +219,7 @@ export const MessageFeed = ({
 
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      isAtBottomRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeThreadId]);
@@ -270,9 +315,20 @@ export const MessageFeed = ({
         if (activeThreadId && msg.id === activeThreadId) return null;
 
         const replyCount = notifications.filter((n) => n.parentNotificationId === msg.id).length;
+        const isFirstUnread = msg.id === firstUnreadId;
+        const isNew = msg.senderId !== userId && msg.status !== 'READ';
 
         return (
           <div key={msg.id} id={`msg-${msg.id}`} className="transition-all duration-300">
+            {isFirstUnread && (
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+                <span className="text-[10px] font-bold text-violet-400 tracking-wider uppercase bg-violet-950/20 px-3 py-1 rounded-full border border-violet-500/15 shadow-[0_0_15px_rgba(139,92,246,0.1)] select-none">
+                  New Notifications
+                </span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+              </div>
+            )}
             <ReadStatusTracker
               id={msg.id}
               userId={userId}
@@ -287,11 +343,15 @@ export const MessageFeed = ({
                 replyCount={replyCount}
                 onReply={!activeThreadId ? () => setActiveThreadId(msg.id) : undefined}
                 isHighlighted={msg.id === highlightMessageId}
+                isNew={isNew}
               />
             </ReadStatusTracker>
           </div>
         );
       })}
+      
+      {/* Bottom spacer to prevent browser padding-bottom scroll bug */}
+      <div className="h-1 shrink-0" />
     </div>
   );
 };
