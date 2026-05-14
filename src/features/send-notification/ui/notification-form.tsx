@@ -121,20 +121,20 @@ export const NotificationForm = ({
           <button onClick={onCancelReply} className="text-neutral-500 hover:text-white transition-colors cursor-pointer">✕</button>
         </div>
       )}
-      <form onSubmit={handleSend} className="p-4 flex gap-3 items-end max-w-5xl mx-auto w-full">
+      <form onSubmit={handleSend} className="p-3 md:p-4 flex gap-2 md:gap-3 items-end max-w-5xl mx-auto w-full">
         {!replyingTo && !isThreadView && (
-          <div className="flex bg-neutral-800 p-1 rounded-xl border border-neutral-700/50 mb-0.5 shrink-0 h-10 items-center gap-1 shadow-inner">
+          <div className="flex bg-neutral-800 p-0.5 md:p-1 rounded-lg md:rounded-xl border border-neutral-700/50 mb-0.5 shrink-0 h-9 md:h-10 items-center gap-0.5 md:gap-1 shadow-inner">
             {[
-              { id: 'LOW', label: 'Low', color: 'text-blue-400', activeBg: 'bg-blue-500/20 border-blue-500/30 shadow-blue-500/10' },
-              { id: 'MEDIUM', label: 'Med', color: 'text-amber-400', activeBg: 'bg-amber-500/20 border-amber-500/30 shadow-amber-500/10' },
-              { id: 'HIGH', label: 'High', color: 'text-red-400', activeBg: 'bg-red-500/20 border-red-500/30 shadow-red-500/10' }
+              { id: 'LOW', label: 'Low', color: 'text-blue-400', activeBg: 'bg-blue-500/20 border-blue-500/30' },
+              { id: 'MEDIUM', label: 'Med', color: 'text-amber-400', activeBg: 'bg-amber-500/20 border-amber-500/30' },
+              { id: 'HIGH', label: 'High', color: 'text-red-400', activeBg: 'bg-red-500/20 border-red-500/30' }
             ].map((p) => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => setPriority(p.id as any)}
                 className={cn(
-                  "px-2.5 h-7 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border border-transparent cursor-pointer",
+                  "px-1.5 md:px-2.5 h-6 md:h-7 rounded-md md:rounded-lg text-[8px] md:text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border border-transparent cursor-pointer",
                   priority === p.id
                     ? `${p.color} ${p.activeBg} shadow-lg scale-105 z-10`
                     : "text-neutral-500 hover:text-neutral-300 hover:bg-neutral-700/50"

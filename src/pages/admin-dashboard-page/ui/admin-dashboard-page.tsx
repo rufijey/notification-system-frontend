@@ -11,6 +11,7 @@ import {
 import { Loader, Avatar } from '@/shared';
 import { Sidebar } from '@/widgets/sidebar';
 import { PageRoutes } from '@/shared/config';
+import { cn } from '@/shared/lib/utils';
 
 import { AdminHeader } from './components/admin-header';
 import { AdminStats } from './components/admin-stats';
@@ -103,20 +104,24 @@ export const AdminDashboardPage = () => {
       <Sidebar
         selectedChannelId={null}
         onSelectChannel={handleSelectChannel}
-        className="flex"
+        className={selectedReportId ? 'hidden md:flex' : 'flex'}
       />
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <div className={cn(
+        "flex-1 flex flex-col h-full overflow-hidden relative",
+        selectedReportId ? "flex" : "hidden md:flex"
+      )}>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-48 bg-rose-500/[0.03] blur-[100px] pointer-events-none" />
 
-        <div className="px-8 pt-8 shrink-0 z-10">
+        <div className="px-4 md:px-8 pt-6 md:pt-8 shrink-0 z-10">
           <AdminHeader
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            onBackClick={selectedReportId ? () => setSelectedReportId(null) : undefined}
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 z-10 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 z-10 scrollbar-hide">
           <div className="max-w-5xl mx-auto space-y-6 pb-20">
 
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">

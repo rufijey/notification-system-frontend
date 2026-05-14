@@ -106,31 +106,31 @@ export const ChannelHeader = ({
           )}
           <div
             onClick={() => navigate(PageRoutes.channelMembers.replace(':channelId', channelId))}
-            className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex-1 flex items-center gap-2 md:gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
             title="View channel members and info"
           >
-            <Avatar name={title} src={photoUrl} />
+            <Avatar name={title} src={photoUrl} className="shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <div className="font-bold text-white truncate leading-none">{title}</div>
+              <div className="flex flex-col md:flex-row md:items-center gap-x-2 gap-y-0.5 mb-0.5">
+                <div className="font-bold text-sm md:text-base text-white truncate leading-tight">{title}</div>
                 <span
-                  className="text-xs font-normal text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded cursor-pointer hover:bg-neutral-750 flex items-center gap-1 shrink-0"
+                  className="text-[9px] md:text-xs font-normal text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded cursor-pointer hover:bg-neutral-750 flex items-center gap-1 shrink-0 w-fit"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleCopy();
                   }}
                   title="Click to copy Channel ID"
                 >
-                  {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                  #{channelId}
+                  {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
+                  <span className="truncate max-w-[60px] md:max-w-none">#{channelId}</span>
                 </span>
               </div>
               {showStatus ? (
                 <div className="flex items-center gap-2">
-                  <div className="text-xs text-green-500">{memberCount} members</div>
+                  <div className="text-[10px] md:text-xs text-green-500">{memberCount} members</div>
                 </div>
               ) : (
-                <div className="text-xs text-neutral-600">Loading status...</div>
+                <div className="text-[10px] md:text-xs text-neutral-600">Loading status...</div>
               )}
             </div>
           </div>
