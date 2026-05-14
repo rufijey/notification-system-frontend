@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
-import { Avatar, Modal, Button } from '@/shared';
+import { Avatar, Modal } from '@/shared';
 import { cn } from '@/shared/lib/utils';
 import { PageRoutes } from '@/shared/config';
 import type { ChannelMember } from '@/entities/notifications/model/types';
