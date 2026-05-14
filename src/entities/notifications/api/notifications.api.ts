@@ -15,6 +15,7 @@ import {
   createNotificationListener,
   createNotificationReadListener,
   createNotificationDeliveredListener,
+  createNotificationDeletedListener,
 } from '../lib/listeners';
 
 export const notificationsApi = baseApi.injectEndpoints({
@@ -56,6 +57,9 @@ export const notificationsApi = baseApi.injectEndpoints({
             [SocketEvent.CHANNEL_READ]: readListener,
             [SocketEvent.NOTIFICATION_READ]: readListener,
             [SocketEvent.NOTIFICATION_DELIVERED]: deliveredListener,
+            [SocketEvent.NOTIFICATION_DELETED]: createNotificationDeletedListener(arg.channelId, (cb) => {
+              updateCachedData((draft) => cb(draft.items));
+            }),
           },
         });
       },
@@ -83,13 +87,13 @@ export const notificationsApi = baseApi.injectEndpoints({
         } catch { }
       },
     }),
-    sendNotification: build.mutation<{ success: boolean; status: 'sent' | 'queued'; notification?: Notification }, { senderId: string; channelId: string; notification: string; clientNotificationId?: string; priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; parentNotificationId?: string }>({
-      query: ({ senderId, channelId, notification, clientNotificationId, priority, parentNotificationId }) => ({
+    sendNotification: build.mutation<{ success: boolean; status: 'sent' | 'queued'; notification?: Notification }, { senderId: string; channelId: string; notification: string; clientNotificationId?: string; priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; parentNotificationId?: string; attachments?: string[] }>({
+      query: ({ senderId, channelId, notification, clientNotificationId, priority, parentNotificationId, attachments }) => ({
         url: ApiRoutes.notifications.send(senderId),
         method: 'POST',
-        body: { channelId, text: notification, clientNotificationId: clientNotificationId || generateId(), priority, parentNotificationId },
+        body: { channelId, text: notification, clientNotificationId: clientNotificationId || generateId(), priority, parentNotificationId, attachments },
       }),
-      async onQueryStarted({ senderId, channelId, notification, clientNotificationId, priority, parentNotificationId }, { dispatch, getState, queryFulfilled }) {
+      async onQueryStarted({ senderId, channelId, notification, clientNotificationId, priority, parentNotificationId, attachments }, { dispatch, getState, queryFulfilled }) {
         if (!channelId) return;
 
         const optimisticId = `temp-${Date.now()}`;
@@ -116,6 +120,7 @@ export const notificationsApi = baseApi.injectEndpoints({
               clientNotificationId: finalClientNotificationId,
               priority: finalPriority,
               parentNotificationId,
+              attachments,
             });
           }
         });
@@ -168,6 +173,7 @@ export const notificationsApi = baseApi.injectEndpoints({
               clientNotificationId: finalClientNotificationId,
               priority,
               parentNotificationId,
+              attachments,
             });
           }
         }
@@ -204,6 +210,12 @@ export const notificationsApi = baseApi.injectEndpoints({
         }
       },
     }),
+    deleteNotification: build.mutation<void, string>({
+      query: (id) => ({
+        url: `${ApiRoutes.notifications.base}/${id}`,
+        method: 'DELETE',
+      }),
+    }),
   }),
 });
 
@@ -213,6 +225,7 @@ export const {
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
   useLoadMoreHistoryMutation,
+  useDeleteNotificationMutation,
 } = notificationsApi;
 
 export const notificationApi = notificationsApi;

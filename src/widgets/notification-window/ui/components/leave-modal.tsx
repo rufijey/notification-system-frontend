@@ -1,4 +1,5 @@
-import { Modal, Button } from '@/shared';
+import { BellOff } from 'lucide-react';
+import { ActionModal } from './action-modal';
 
 interface LeaveModalProps {
   isOpen: boolean;
@@ -8,29 +9,30 @@ interface LeaveModalProps {
 
 export const LeaveModal = ({ isOpen, onClose, onLeave }: LeaveModalProps) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Unsubscribe from Channel">
+    <ActionModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Unsubscribe"
+      subtitle="Stop receiving updates"
+      icon={<BellOff size={20} />}
+      variant="danger"
+      actionLabel="Unsubscribe"
+      onAction={() => {
+        onLeave();
+        onClose();
+      }}
+    >
       <div className="space-y-4">
-        <p className="text-sm text-neutral-400">
-          Are you sure you want to unsubscribe from this channel? You won't receive any more notifications from it.
+        <p className="text-sm text-neutral-400 leading-relaxed">
+          Are you sure you want to unsubscribe from this channel? 
+          You won't receive any more notifications from this source until you subscribe again.
         </p>
-        <div className="flex gap-2 justify-end">
-          <Button
-            className="bg-transparent text-neutral-400 hover:text-white hover:bg-neutral-800"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="bg-red-500/20 text-red-400 hover:bg-red-500/30"
-            onClick={() => {
-              onLeave();
-              onClose();
-            }}
-          >
-            Unsubscribe
-          </Button>
+        <div className="p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
+          <p className="text-[11px] text-rose-300/60 italic">
+            Note: You can always search for the channel and join back later.
+          </p>
         </div>
       </div>
-    </Modal>
+    </ActionModal>
   );
 };

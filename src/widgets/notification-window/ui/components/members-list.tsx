@@ -28,7 +28,7 @@ export const MembersList = ({
             key={m.userId}
             className="flex items-center gap-3 text-sm text-white bg-neutral-950/50 p-3 rounded-xl border border-neutral-800/50 group"
           >
-            <Avatar name={m.fullName || m.username} className="w-10 h-10 text-sm" />
+            <Avatar name={m.fullName || m.username} src={m.avatarUrl} className="w-10 h-10 text-sm" />
             <div className="flex-1 min-w-0">
               <div className="font-medium text-neutral-200 truncate flex items-center gap-2">
                 {m.fullName}

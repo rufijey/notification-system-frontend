@@ -3,6 +3,7 @@
  */
 export const ApiRoutes = {
   users: {
+    base: '/users',
     login: '/users/login',
     register: '/users/register',
     logout: '/users/logout',
@@ -10,6 +11,7 @@ export const ApiRoutes = {
     updateProfile: '/users/profile',
   },
   notifications: {
+    base: '/notifications',
     history: (channelId: string) => `/notifications/history/${encodeURIComponent(channelId)}`,
     send: (userId: string) => `/notifications/send?userId=${userId}`,
     readAll: (channelId: string, userId: string) => `/notifications/read-all/${encodeURIComponent(channelId)}?userId=${userId}`,

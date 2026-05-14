@@ -1,11 +1,18 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { type Notification } from '../model/types';
 import { cn } from '../../../shared/lib/utils';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '@/app/providers/store';
-import { notificationsApi } from '../api';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Trash2 } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { type RootState } from '@/app/providers/store';
+import { useDeleteNotificationMutation } from '../api';
 import { NotificationStatus } from './components/notification-status';
 import { NotificationPriorityIcon } from './components/notification-priority-icon';
+import { ImageModal, Avatar, Loader, Modal, Button } from '@/shared';
+import { PageRoutes } from '@/shared/config';
+import { notificationsApi } from '../api';
 
 interface NotificationBubbleProps {
   notification: Notification;
@@ -26,6 +33,15 @@ export const NotificationBubble = ({
   isHighlighted = false,
 }: NotificationBubbleProps) => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const currentUserId = useSelector((state: RootState) => state.user.currentUserId);
+  const [deleteNotification, { isLoading: isDeleting }] = useDeleteNotificationMutation();
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleProfileClick = () => {
+    navigate(`${PageRoutes.profile}/${notification.senderId}`);
+  };
 
   const handleRetry = () => {
     if (notification.status === 'FAILED_OFFLINE') {
@@ -39,6 +55,15 @@ export const NotificationBubble = ({
           parentNotificationId: notification.parentNotificationId,
         })
       );
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteNotification(notification.id).unwrap();
+      setIsDeleteModalOpen(false);
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
     }
   };
 
@@ -69,20 +94,35 @@ export const NotificationBubble = ({
   const time = formatMessageTime(notification.createdAt);
 
   const sender = members?.find((m) => m.userId === notification.senderId);
+  const currentUser = members?.find((m) => m.userId === currentUserId);
+  const isAdmin = currentUser?.role === 'ADMIN';
   const senderName = sender ? (sender.fullName || sender.username) : null;
-  const showSenderName = !isMe && !!notification.parentNotificationId && !!senderName;
+  const showSenderInfo = !isMe && (!!notification.parentNotificationId);
 
   return (
     <div
       className={cn(
-        "flex items-center gap-2 group max-w-[85%]",
+        "flex items-end gap-2 group max-w-[90%]",
         isMe ? "ml-auto flex-row-reverse" : "mr-auto flex-row"
       )}
     >
+      {showSenderInfo && (
+        <Avatar
+          name={senderName || notification.senderId}
+          src={sender?.avatarUrl}
+          size="sm"
+          className="w-7 h-7 rounded-lg mb-4 shrink-0 shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={handleProfileClick}
+        />
+      )}
+
       {/* Bubble and metadata wrapper */}
-      <div className={cn("flex flex-col max-w-[75%]", isMe ? "items-end" : "items-start")}>
-        {showSenderName && (
-          <div className="text-[10px] text-violet-400 font-semibold mb-0.5 ml-1.5 drop-shadow-sm flex items-center gap-1">
+      <div className={cn("flex flex-col max-w-[85%]", isMe ? "items-end" : "items-start")}>
+        {showSenderInfo && senderName && (
+          <div 
+            className="text-[10px] text-violet-400 font-semibold mb-0.5 ml-1.5 drop-shadow-sm flex items-center gap-1 cursor-pointer hover:text-violet-300 transition-colors"
+            onClick={handleProfileClick}
+          >
             <span>{senderName}</span>
             {sender?.username && sender.fullName && (
               <span className="text-neutral-500 font-normal">@{sender.username}</span>
@@ -105,6 +145,24 @@ export const NotificationBubble = ({
         >
           {/* Message Text */}
           <span className="leading-relaxed break-words whitespace-pre-wrap">{notification.text}</span>
+
+          {/* Attachments */}
+          {notification.attachments && notification.attachments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {notification.attachments.map((url, i) => (
+                <div key={i} className="relative group/img cursor-zoom-in" onClick={() => setPreviewImage(url)}>
+                  <img src={url} alt="Attachment" className="max-w-[200px] max-h-[200px] object-cover rounded-xl border border-white/10 shadow-lg hover:border-violet-500/50 transition-all duration-300" />
+                  <div className="absolute inset-0 bg-black/20 group-hover/img:bg-black/0 transition-colors rounded-xl" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <ImageModal
+            isOpen={!!previewImage}
+            onClose={() => setPreviewImage(null)}
+            src={previewImage || ''}
+          />
 
           {/* Time & Read Status & Priority Icon */}
           <div className="flex items-center gap-1 justify-end text-[9px] text-neutral-400/60 select-none mt-1 shrink-0 self-end">
@@ -137,19 +195,58 @@ export const NotificationBubble = ({
         )}
       </div>
 
-      {/* Hover Thread Reply Action */}
-      {onReply && (
-        <button
-          onClick={onReply}
-          className={cn(
-            "opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 cursor-pointer shadow-md shrink-0 flex items-center justify-center h-7 w-7",
-            isMe ? "mr-1" : "ml-1"
-          )}
-          title="Reply in thread"
-        >
-          <MessageSquare size={12} />
-        </button>
-      )}
+      {/* Hover Actions Area */}
+      <div className={cn("flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity", isMe ? "flex-row-reverse" : "flex-row")}>
+        {onReply && (
+          <button
+            onClick={onReply}
+            className="p-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-800 cursor-pointer shadow-md shrink-0 flex items-center justify-center h-7 w-7"
+            title="Reply in thread"
+          >
+            <MessageSquare size={12} />
+          </button>
+        )}
+        
+        {isAdmin && (
+          <button
+            onClick={() => setIsDeleteModalOpen(true)}
+            disabled={isDeleting}
+            className="p-1.5 rounded-full bg-neutral-900 hover:bg-rose-950/30 text-neutral-400 hover:text-rose-500 border border-neutral-800 hover:border-rose-500/30 cursor-pointer shadow-md shrink-0 flex items-center justify-center h-7 w-7 transition-all"
+            title="Delete message"
+          >
+            {isDeleting ? <Loader size="sm" /> : <Trash2 size={12} />}
+          </button>
+        )}
+      </div>
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Message"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-400">
+            Are you sure you want to delete this message? This action cannot be undone.
+          </p>
+          <div className="flex items-center gap-2 justify-end">
+            <Button
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeleting}
+              className="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-1.5 h-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 h-auto"
+            >
+              {isDeleting ? <Loader size="sm" className="mr-2" /> : null}
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

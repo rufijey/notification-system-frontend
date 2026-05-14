@@ -9,9 +9,10 @@ import { requestNotificationPermission } from '@/shared/lib/browser/notification
 interface ProfileHeaderProps {
   currentUserId: string;
   fullName: string | null;
+  avatarUrl?: string;
 }
 
-export const ProfileHeader = ({ currentUserId, fullName }: ProfileHeaderProps) => {
+export const ProfileHeader = ({ currentUserId, fullName, avatarUrl }: ProfileHeaderProps) => {
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
 
@@ -29,7 +30,7 @@ export const ProfileHeader = ({ currentUserId, fullName }: ProfileHeaderProps) =
         className="flex items-center gap-3 overflow-hidden min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
         title="View Profile Settings"
       >
-        <Avatar name={fullName || currentUserId} />
+        <Avatar name={fullName || currentUserId} src={avatarUrl} />
         <div className="min-w-0 flex flex-col">
           <span className="font-semibold text-sm text-white truncate leading-tight">
             {fullName || currentUserId}

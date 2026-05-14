@@ -5,9 +5,11 @@ interface AvatarProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   isOnline?: boolean;
+  src?: string;
+  onClick?: () => void;
 }
 
-export const Avatar = ({ name, size = 'md', className, isOnline }: AvatarProps) => {
+export const Avatar = ({ name, size = 'md', className, isOnline, src, onClick }: AvatarProps) => {
   const firstLetter = name[0]?.toUpperCase() || '?';
   
   const sizeClasses = {
@@ -37,16 +39,21 @@ export const Avatar = ({ name, size = 'md', className, isOnline }: AvatarProps) 
   const bgColor = colors[colorIndex];
 
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0" onClick={onClick}>
       <div
         className={cn(
-          'rounded-full flex items-center justify-center font-bold text-white',
+          'flex items-center justify-center font-bold text-white overflow-hidden',
+          !className?.includes('rounded-') && 'rounded-full',
           sizeClasses[size],
           bgColor,
           className
         )}
       >
-        {firstLetter}
+        {src ? (
+          <img src={src} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          firstLetter
+        )}
       </div>
       {isOnline !== undefined && (
         <div

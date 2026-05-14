@@ -72,15 +72,55 @@ export const channelsApi = baseApi.injectEndpoints({
         url: ApiRoutes.channels.search(query),
       }),
     }),
-    getChannelDetails: build.query<{ channelId: string; title: string; memberCount: number }, string>({
+    getChannelDetails: build.query<{ channelId: string; title: string; memberCount: number; photoUrl?: string; isBanned?: boolean }, string>({
       query: (channelId) => ({ url: ApiRoutes.channels.details(channelId) }),
       providesTags: ['Channels'],
+      async onCacheEntryAdded(
+        arg,
+        { updateCachedData, cacheDataLoaded, cacheEntryRemoved, getState }
+      ) {
+        try {
+          await cacheDataLoaded;
+          const state = getState() as RootState;
+          const accessToken = state.user.accessToken;
+          const userId = state.user.currentUserId;
+
+          if (!accessToken || !userId) return;
+
+          const socket = getSocket(userId, accessToken);
+
+          const handleBanned = (payload: any) => {
+            if (payload.channelId === arg) {
+              updateCachedData((draft) => {
+                draft.isBanned = true;
+              });
+            }
+          };
+
+          const handleUnbanned = (payload: any) => {
+            if (payload.channelId === arg) {
+              updateCachedData((draft) => {
+                draft.isBanned = false;
+              });
+            }
+          };
+
+          socket.on(SocketEvent.ADMIN_CHANNEL_BANNED, handleBanned);
+          socket.on(SocketEvent.ADMIN_CHANNEL_UNBANNED, handleUnbanned);
+
+          await cacheEntryRemoved;
+          socket.off(SocketEvent.ADMIN_CHANNEL_BANNED, handleBanned);
+          socket.off(SocketEvent.ADMIN_CHANNEL_UNBANNED, handleUnbanned);
+        } catch (err) {
+          console.error('Channel details real-time error:', err);
+        }
+      },
     }),
-    renameChannel: build.mutation<void, { channelId: string; title: string }>({
-      query: ({ channelId, title }) => ({
+    renameChannel: build.mutation<void, { channelId: string; title?: string; photoUrl?: string }>({
+      query: ({ channelId, title, photoUrl }) => ({
         url: ApiRoutes.channels.rename(channelId),
         method: 'PATCH',
-        body: { title },
+        body: { title, photoUrl },
       }),
       invalidatesTags: ['Channels'],
     }),

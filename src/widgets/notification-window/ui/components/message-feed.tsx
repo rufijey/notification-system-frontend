@@ -19,6 +19,7 @@ interface MessageFeedProps {
   members: ChannelMember[];
   query?: string;
   highlightMessageId?: string | null;
+  isMember?: boolean;
 }
 
 export const MessageFeed = ({
@@ -37,8 +38,10 @@ export const MessageFeed = ({
   members,
   query,
   highlightMessageId,
+  isMember = false,
 }: MessageFeedProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const isLoadingMoreRef = useRef(false);
   const initialScrollDone = useRef(false);
@@ -82,6 +85,8 @@ export const MessageFeed = ({
 
   // Capture the first unread message when history is loaded
   useEffect(() => {
+    if (!isMember) return;
+    
     if (!isHistoryLoading && displayedNotifications.length > 0 && !hasCapturedInitialUnreadRef.current) {
       const firstUnread = displayedNotifications.find(
         (msg) => msg.senderId !== userId && msg.status !== 'READ'
@@ -91,7 +96,7 @@ export const MessageFeed = ({
       }
       hasCapturedInitialUnreadRef.current = true;
     }
-  }, [isHistoryLoading, displayedNotifications, userId]);
+  }, [isHistoryLoading, displayedNotifications, userId, isMember]);
 
   // Unified Scroll Handling (Initial load, Sender, and Recipient updates)
   useLayoutEffect(() => {
@@ -153,7 +158,25 @@ export const MessageFeed = ({
     prevLastNotificationIdRef.current = lastNotificationId;
   }, [isHistoryLoading, lastNotificationId, highlightMessageId, userId, displayedNotifications, firstUnreadId]);
 
-  // Keep scroll anchored to bottom on resize (e.g. when textarea auto-grows/shrinks or keyboard opens)
+  // Keep scroll anchored to bottom when content height changes (e.g. images loading)
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    const contentEl = contentRef.current;
+    if (!scrollEl || !contentEl) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (isAtBottomRef.current && !isLoadingMoreRef.current) {
+        requestAnimationFrame(() => {
+          scrollEl.scrollTop = scrollEl.scrollHeight;
+        });
+      }
+    });
+
+    resizeObserver.observe(contentEl);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Keep scroll anchored to bottom on scroll container resize (e.g. window resize, keyboard)
   useEffect(() => {
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
@@ -163,15 +186,8 @@ export const MessageFeed = ({
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const newHeight = entry.target.clientHeight;
-        const heightDifference = lastHeight - newHeight;
-
-        if (Math.abs(heightDifference) > 0) {
-          // If the user was scrolled near the bottom (within 120px)
-          const isAtBottom = scrollEl.scrollHeight - scrollEl.scrollTop - lastHeight < 120;
-          if (isAtBottom) {
-            scrollEl.scrollTop = scrollEl.scrollHeight;
-            isAtBottomRef.current = true;
-          }
+        if (lastHeight !== newHeight && isAtBottomRef.current) {
+          scrollEl.scrollTop = scrollEl.scrollHeight;
         }
         lastHeight = newHeight;
       }
@@ -244,7 +260,7 @@ export const MessageFeed = ({
         shouldAdjustScrollRef.current = false;
       }
     }
-    
+
     isLoadingMoreRef.current = false;
   }, [hasMore, notifications, userId, channelId, loadMoreHistory, query]);
 
@@ -270,86 +286,68 @@ export const MessageFeed = ({
       {/* Sentinel for infinite scroll loading at the top */}
       <div ref={topSentinelRef} className="h-px" />
 
-      {/* Loading previous messages spinner */}
-      {isLoadingMore && (
-        <div className="flex justify-center py-2">
-          <Loader size="sm" className="text-neutral-500" />
-        </div>
-      )}
-
-      {/* Beginning of conversation indicator */}
-      {!hasMore && !isHistoryLoading && notifications.length > 0 && (
-        <div className="text-center text-[11px] text-neutral-600 py-2">
-          Beginning of conversation
-        </div>
-      )}
-
-      {isHistoryLoading && (
-        <div className="flex justify-center py-6">
-          <Loader size="md" />
-        </div>
-      )}
-
-      {activeThreadId && activeParentNotification && (
-        <div className="pb-4 border-b border-neutral-800/50 mb-4">
-          <ReadStatusTracker
-            id={activeParentNotification.id}
-            userId={userId}
-            status={activeParentNotification.status}
-            isMe={activeParentNotification.senderId === userId}
-            isChannelActive={isActive}
-          >
-            <NotificationBubble
-              notification={activeParentNotification}
-              isMe={activeParentNotification.senderId === userId}
-              members={members}
-            />
-          </ReadStatusTracker>
-          <div className="text-[11px] text-neutral-500 uppercase tracking-widest font-semibold mt-6 ml-2">
-            Replies
-          </div>
-        </div>
-      )}
-
-      {displayedNotifications.map((msg) => {
-        if (activeThreadId && msg.id === activeThreadId) return null;
-
-        const replyCount = notifications.filter((n) => n.parentNotificationId === msg.id).length;
-        const isFirstUnread = msg.id === firstUnreadId;
-        const isNew = msg.senderId !== userId && msg.status !== 'READ';
-
-        return (
-          <div key={msg.id} id={`msg-${msg.id}`} className="transition-all duration-300">
-            {isFirstUnread && (
-              <div className="flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
-                <span className="text-[10px] font-bold text-violet-400 tracking-wider uppercase bg-violet-950/20 px-3 py-1 rounded-full border border-violet-500/15 shadow-[0_0_15px_rgba(139,92,246,0.1)] select-none">
-                  New Notifications
-                </span>
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
-              </div>
-            )}
+      <div ref={contentRef} className="flex flex-col space-y-4">
+        {activeThreadId && activeParentNotification && (
+          <div className="pb-4 border-b border-neutral-800/50 mb-4">
             <ReadStatusTracker
-              id={msg.id}
+              id={activeParentNotification.id}
               userId={userId}
-              status={msg.status}
-              isMe={msg.senderId === userId}
+              status={activeParentNotification.status}
+              isMe={activeParentNotification.senderId === userId}
               isChannelActive={isActive}
             >
               <NotificationBubble
-                notification={msg}
-                isMe={msg.senderId === userId}
+                notification={activeParentNotification}
+                isMe={activeParentNotification.senderId === userId}
                 members={members}
-                replyCount={replyCount}
-                onReply={!activeThreadId ? () => setActiveThreadId(msg.id) : undefined}
-                isHighlighted={msg.id === highlightMessageId}
-                isNew={isNew}
               />
             </ReadStatusTracker>
+            <div className="text-[11px] text-neutral-500 uppercase tracking-widest font-semibold mt-6 ml-2">
+              Replies
+            </div>
           </div>
-        );
-      })}
-      
+        )}
+
+        {displayedNotifications.map((msg) => {
+          if (activeThreadId && msg.id === activeThreadId) return null;
+
+          const replyCount = notifications.filter((n) => n.parentNotificationId === msg.id).length;
+          const isFirstUnread = msg.id === firstUnreadId;
+          const isNew = msg.senderId !== userId && msg.status !== 'READ';
+
+          return (
+            <div key={msg.id} id={`msg-${msg.id}`} className="transition-all duration-300">
+              {isFirstUnread && (
+                <div className="flex items-center gap-4 my-6">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+                  <span className="text-[10px] font-bold text-violet-400 tracking-wider uppercase bg-violet-950/20 px-3 py-1 rounded-full border border-violet-500/15 shadow-[0_0_15px_rgba(139,92,246,0.1)] select-none">
+                    New Notifications
+                  </span>
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-violet-500/30 to-transparent" />
+                </div>
+              )}
+              <ReadStatusTracker
+                id={msg.id}
+                userId={userId}
+                status={msg.status}
+                isMe={msg.senderId === userId}
+                isChannelActive={isActive}
+              >
+                <NotificationBubble
+                  notification={msg}
+                  isMe={msg.senderId === userId}
+                  members={members}
+                  replyCount={replyCount}
+                  onReply={!activeThreadId ? () => setActiveThreadId(msg.id) : undefined}
+                  isHighlighted={msg.id === highlightMessageId}
+                  isNew={isNew}
+                />
+              </ReadStatusTracker>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Bottom spacer to prevent browser padding-bottom scroll bug */}
       <div className="h-1 shrink-0" />
     </div>

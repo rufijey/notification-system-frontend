@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { ChevronDown, Copy, Check, UserPlus, Users, LogOut, Search, X, Edit2, ArrowLeft } from 'lucide-react';
+import { ChevronDown, Copy, Check, UserPlus, Users, LogOut, Search, X, Edit2, ArrowLeft, Flag, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Avatar } from '@/shared';
 import { PageRoutes } from '@/shared/config';
+import { selectCurrentUser } from '@/entities/user';
+import { UserRole } from '@/entities/user/model/types';
 
 interface ChannelHeaderProps {
   title: string;
   channelId: string;
+  photoUrl?: string;
   showStatus: boolean;
   memberCount: number;
   role?: 'ADMIN' | 'PUBLISHER' | 'SUBSCRIBER';
@@ -20,11 +24,14 @@ interface ChannelHeaderProps {
   showSearch: boolean;
   setShowSearch: (val: boolean) => void;
   onBackClick?: () => void;
+  onReportClick: () => void;
+  onBanClick: () => void;
 }
 
 export const ChannelHeader = ({
   title,
   channelId,
+  photoUrl,
   showStatus,
   memberCount,
   role,
@@ -38,10 +45,14 @@ export const ChannelHeader = ({
   showSearch,
   setShowSearch,
   onBackClick,
+  onReportClick,
+  onBanClick,
 }: ChannelHeaderProps) => {
   const [copied, setCopied] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
+  const isGlobalAdmin = currentUser?.role === UserRole.GLOBAL_ADMIN;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(channelId);
@@ -98,10 +109,10 @@ export const ChannelHeader = ({
             className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
             title="View channel members and info"
           >
-            <Avatar name={title} />
+            <Avatar name={title} src={photoUrl} />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-white truncate flex items-center gap-2">
-                {title}
+              <div className="flex items-center gap-2 mb-0.5">
+                <div className="font-bold text-white truncate leading-none">{title}</div>
                 <span
                   className="text-xs font-normal text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded cursor-pointer hover:bg-neutral-750 flex items-center gap-1 shrink-0"
                   onClick={(e) => {
@@ -125,6 +136,16 @@ export const ChannelHeader = ({
           </div>
 
           <div className="flex items-center gap-1">
+            {isGlobalAdmin && (
+              <button
+                onClick={onBanClick}
+                className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-full transition-colors cursor-pointer"
+                title="Ban Channel (Global Admin)"
+              >
+                <ShieldAlert size={18} />
+              </button>
+            )}
+
             <button
               onClick={() => setShowSearch(true)}
               className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-full transition-colors cursor-pointer"
@@ -171,6 +192,15 @@ export const ChannelHeader = ({
                       className="w-full text-left px-4 py-2 text-sm text-white hover:bg-neutral-700 flex items-center gap-2 transition-colors cursor-pointer"
                     >
                       <Users size={14} /> {showMembers ? 'Hide Members' : 'View Members'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        onReportClick();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-amber-400 hover:bg-neutral-700 flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Flag size={14} /> Report Channel
                     </button>
                     <button
                       onClick={() => {

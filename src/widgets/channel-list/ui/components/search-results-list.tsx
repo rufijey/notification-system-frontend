@@ -5,7 +5,7 @@ import { cn } from '../../../../shared/lib/utils';
 import type { Channel } from '@/entities/notifications/model/types';
 
 interface SearchResultsListProps {
-  searchResults: { channelId: string; title: string; isMember: boolean }[];
+  searchResults: { channelId: string; title: string; isMember: boolean; photoUrl?: string }[];
   isSearching: boolean;
   channels: Channel[];
   selectedChannelId: string | null;
@@ -57,7 +57,7 @@ export const SearchResultsList = ({
               selectedChannelId === result.channelId && "bg-neutral-800"
             )}
           >
-            <Avatar name={result.title} />
+            <Avatar name={result.title} src={result.photoUrl} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">

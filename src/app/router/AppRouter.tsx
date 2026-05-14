@@ -11,6 +11,9 @@ const ChannelMembersPage = lazy(() => import('../../pages/channel-members-page')
 const CreateChannelPage = lazy(() => import('../../pages/create-channel-page').then(m => ({ default: m.CreateChannelPage })));
 const GlobalNotificationsPage = lazy(() => import('../../pages/global-notifications-page').then(m => ({ default: m.GlobalNotificationsPage })));
 const ProfilePage = lazy(() => import('../../pages/profile-page').then(m => ({ default: m.ProfilePage })));
+const AdminDashboardPage = lazy(() => import('../../pages/admin-dashboard-page').then(m => ({ default: m.AdminDashboardPage })));
+
+import { GlobalAdminGuard } from './GlobalAdminGuard';
 
 export const AppRouter = () => {
   return (
@@ -31,6 +34,11 @@ export const AppRouter = () => {
           <Route path={PageRoutes.createChannel} element={<CreateChannelPage />} />
           <Route path={PageRoutes.globalNotifications} element={<GlobalNotificationsPage />} />
           <Route path={PageRoutes.profile} element={<ProfilePage />} />
+          <Route path={`${PageRoutes.profile}/:username`} element={<ProfilePage />} />
+          
+          <Route element={<GlobalAdminGuard />}>
+            <Route path={PageRoutes.adminDashboard} element={<AdminDashboardPage />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to={PageRoutes.channelBase} replace />} />

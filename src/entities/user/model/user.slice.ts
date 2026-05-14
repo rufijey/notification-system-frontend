@@ -1,10 +1,14 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import { setAccessToken } from '@/shared/api/base';
 import { loginThunk, registerThunk, logoutThunk } from '@/features/auth/model/auth.thunks';
+
+import { UserRole } from './types';
 
 export interface UserState {
   currentUserId: string | null;
   fullName: string | null;
+  avatarUrl: string | null;
+  role: UserRole | null;
   accessToken: string | null;
   isAuth: boolean;
   isInit: boolean;
@@ -14,6 +18,8 @@ export interface UserState {
 const initialState: UserState = {
   currentUserId: null,
   fullName: null,
+  avatarUrl: null,
+  role: null,
   accessToken: null,
   isAuth: false,
   isInit: false,
@@ -26,10 +32,12 @@ export const userSlice = createSlice({
   reducers: {
     setAuth: (
       state,
-      action: PayloadAction<{ userId: string; accessToken: string; fullName?: string }>
+      action: PayloadAction<{ userId: string; accessToken: string; fullName?: string; avatarUrl?: string; role?: UserRole }>
     ) => {
       state.currentUserId = action.payload.userId;
       state.fullName = action.payload.fullName ?? null;
+      state.avatarUrl = action.payload.avatarUrl ?? null;
+      state.role = action.payload.role ?? UserRole.USER;
       state.accessToken = action.payload.accessToken;
       state.isAuth = true;
       state.isInit = true;
@@ -38,6 +46,8 @@ export const userSlice = createSlice({
     logout: (state) => {
       state.currentUserId = null;
       state.fullName = null;
+      state.avatarUrl = null;
+      state.role = null;
       state.accessToken = null;
       state.isAuth = false;
       state.isInit = true;
@@ -53,6 +63,9 @@ export const userSlice = createSlice({
     },
     setFullName: (state, action: PayloadAction<string>) => {
       state.fullName = action.payload;
+    },
+    setAvatarUrl: (state, action: PayloadAction<string>) => {
+      state.avatarUrl = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -87,5 +100,19 @@ export const userSlice = createSlice({
   },
 });
 
-export const { setAuth, logout, setInitialized, setUserId, setFullName } = userSlice.actions;
+
+export const { setAuth, logout, setInitialized, setUserId, setFullName, setAvatarUrl } = userSlice.actions;
+
+const selectUserState = (state: { user: UserState }) => state.user;
+
+export const selectCurrentUser = createSelector(
+  [selectUserState],
+  (user) => ({
+    username: user.currentUserId,
+    fullName: user.fullName,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+  })
+);
+
 export default userSlice.reducer;

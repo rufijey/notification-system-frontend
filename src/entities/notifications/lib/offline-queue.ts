@@ -9,6 +9,7 @@ export interface OfflineMessage {
   clientNotificationId: string;
   priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
   parentNotificationId?: string;
+  attachments?: string[];
 }
 
 const QUEUE_KEY = 'offline_notifications_queue';
@@ -128,6 +129,7 @@ export const processOfflineQueue = async (dispatch: AppDispatch, getState: () =>
           clientNotificationId: msg.clientNotificationId,
           priority: msg.priority,
           parentNotificationId: msg.parentNotificationId,
+          attachments: msg.attachments,
         })
       ).unwrap();
 

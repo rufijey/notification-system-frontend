@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users, ShieldCheck, HelpCircle, ArrowLeft } from 'lucide-react';
+import { Plus, Users, ShieldCheck, HelpCircle, ArrowLeft, Camera } from 'lucide-react';
 import { type RootState } from '@/app/providers/store';
 import { Sidebar } from '@/widgets/sidebar';
-import { Button, Input } from '@/shared';
+import { Button, Input, Avatar, Loader } from '@/shared';
 import { useCreateChannelMutation } from '@/entities/notifications/api';
 import { PageRoutes } from '@/shared/config';
+import { uploadFileToS3 } from '@/shared/api/upload';
+import { useRef } from 'react';
 
 export const CreateChannelPage = () => {
   const currentUserId = useSelector((state: RootState) => state.user.currentUserId);
@@ -14,8 +16,12 @@ export const CreateChannelPage = () => {
 
   const [title, setTitle] = useState('');
   const [customId, setCustomId] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const token = useSelector((state: RootState) => state.user.accessToken);
 
   const [createChannel] = useCreateChannelMutation();
 
@@ -25,6 +31,21 @@ export const CreateChannelPage = () => {
 
   const handleSelectContact = (id: string) => {
     navigate(`${PageRoutes.channelBase}/${id}`);
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+
+    try {
+      setIsUploading(true);
+      const uploadedUrl = await uploadFileToS3(file, token);
+      setPhotoUrl(uploadedUrl);
+    } catch (err) {
+      console.error('Failed to upload photo:', err);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -39,6 +60,7 @@ export const CreateChannelPage = () => {
         memberIds: [],
         title: title.trim(),
         id: customId.trim() || undefined,
+        photoUrl,
       }).unwrap();
       navigate(`${PageRoutes.channelBase}/${channel.channelId}`);
     } catch (err: any) {
@@ -84,6 +106,23 @@ export const CreateChannelPage = () => {
             <p className="text-xs text-neutral-400">
               Launch your own secure notification stream to broadcast updates
             </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 pb-2">
+            <div className="relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handlePhotoChange} 
+              />
+              <Avatar name={title || 'Channel'} src={photoUrl} className="w-20 h-20 text-xl border border-neutral-800 bg-neutral-950 shadow-inner" />
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {isUploading ? <Loader size="sm" /> : <Camera className="text-white" size={20} />}
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-tighter">Add channel photo</span>
           </div>
 
           {/* Form */}

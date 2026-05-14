@@ -203,6 +203,22 @@ export const createNotificationDeliveredListener = (
   };
 };
 
+export const createNotificationDeletedListener = (
+  channelId: string,
+  updateCachedData: (cb: (draft: Notification[]) => void) => void
+) => {
+  return (payload: { notificationId: string; channelId: string }) => {
+    if (payload.channelId !== channelId) return;
+
+    updateCachedData((draft) => {
+      const index = draft.findIndex(m => m.id === payload.notificationId);
+      if (index !== -1) {
+        draft.splice(index, 1);
+      }
+    });
+  };
+};
+
 export const createGlobalNotificationListener = (
   currentUserId: string,
   updateCachedData: (cb: (draft: any[]) => void) => void,

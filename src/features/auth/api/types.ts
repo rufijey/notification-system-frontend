@@ -1,7 +1,11 @@
+import { UserRole } from '@/entities/user/model/types';
+
 export interface AuthResponse {
   accessToken: string;
   userId: string;
   fullName?: string;
+  avatarUrl?: string;
+  role: UserRole;
 }
 
 export interface LoginDto {

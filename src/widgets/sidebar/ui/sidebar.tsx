@@ -1,11 +1,12 @@
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { type RootState } from '@/app/providers/store';
 import { ChannelList } from '@/widgets/channel-list';
 import { ProfileHeader } from './components/profile-header';
-import { MessageSquare, Plus, Bell } from 'lucide-react';
+import { MessageSquare, Plus, Bell, Shield } from 'lucide-react';
 import { PageRoutes } from '@/shared/config';
 import { useGetChannelsQuery } from '@/entities/notifications/api';
+import { selectCurrentUser } from '@/entities/user/model/user.slice';
+import { UserRole } from '@/entities/user/model/types';
 
 interface SidebarProps {
   selectedChannelId: string | null;
@@ -14,8 +15,11 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: SidebarProps) => {
-  const currentUserId = useSelector((state: RootState) => state.user.currentUserId);
-  const fullName = useSelector((state: RootState) => state.user.fullName);
+  const user = useSelector(selectCurrentUser);
+  const currentUserId = user.username;
+  const fullName = user.fullName;
+  const avatarUrl = user.avatarUrl;
+  const isAdmin = user.role === UserRole.GLOBAL_ADMIN;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -31,11 +35,12 @@ export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: Sideb
   const isChannelsActive = location.pathname.startsWith(PageRoutes.channelBase);
   const isCreateActive = location.pathname.startsWith(PageRoutes.createChannel);
   const isNotificationsActive = location.pathname.startsWith(PageRoutes.globalNotifications);
+  const isAdminActive = location.pathname.startsWith(PageRoutes.adminDashboard);
 
   return (
     <div className={`flex flex-col h-full border-r border-neutral-900/40 bg-neutral-900 w-full md:w-80 md:shrink-0 ${className || ''}`}>
       {/* 1. Profile block and logout header */}
-      <ProfileHeader currentUserId={currentUserId} fullName={fullName} />
+      <ProfileHeader currentUserId={currentUserId} fullName={fullName} avatarUrl={avatarUrl || undefined} />
 
       {/* 2. Split view under user block */}
       <div className="flex-1 flex overflow-hidden">
@@ -44,8 +49,8 @@ export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: Sideb
           <button
             onClick={() => navigate(PageRoutes.channelBase)}
             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer ${isChannelsActive
-                ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
+              ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
+              : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
               }`}
             title="Channels & messages"
           >
@@ -55,8 +60,8 @@ export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: Sideb
           <button
             onClick={() => navigate(PageRoutes.createChannel)}
             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer ${isCreateActive
-                ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
+              ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
+              : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
               }`}
             title="Create channel"
           >
@@ -66,8 +71,8 @@ export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: Sideb
           <button
             onClick={() => navigate(PageRoutes.globalNotifications)}
             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer relative ${isNotificationsActive
-                ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
+              ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
+              : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
               }`}
             title="Global notifications feed"
           >
@@ -78,6 +83,19 @@ export const Sidebar = ({ selectedChannelId, onSelectChannel, className }: Sideb
               </span>
             )}
           </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => navigate(PageRoutes.adminDashboard)}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 cursor-pointer ${isAdminActive
+                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/15'
+                }`}
+              title="Admin Dashboard"
+            >
+              <Shield size={18} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden bg-neutral-900">

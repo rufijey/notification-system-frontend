@@ -10,4 +10,5 @@ export const PageRoutes = {
   createChannel: '/create-channel',
   globalNotifications: '/global-notifications',
   profile: '/profile',
+  adminDashboard: '/admin',
 } as const;

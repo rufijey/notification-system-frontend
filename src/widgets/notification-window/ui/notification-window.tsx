@@ -13,7 +13,7 @@ import {
   useRenameChannelMutation,
 } from '@/entities/notifications/api';
 import { NotificationForm } from '@/features/send-notification';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, ShieldAlert, Info } from 'lucide-react';
 import { Loader, Button } from '@/shared';
 import { useNavigate } from 'react-router-dom';
 import { PageRoutes } from '@/shared/config';
@@ -23,8 +23,11 @@ import { MembersList } from './components/members-list';
 import { InviteModal } from './components/invite-modal';
 import { LeaveModal } from './components/leave-modal';
 import { RenameModal } from './components/rename-modal';
+import { ReportModal } from './components/report-modal';
 import { ThreadBar } from './components/thread-bar';
 import { MessageFeed } from './components/message-feed';
+import { BanModal } from './components/ban-modal';
+import { useBanChannelMutation, useReportChannelMutation } from '@/entities/admin/api/admin.api';
 
 interface NotificationWindowProps {
   userId: string;
@@ -40,6 +43,8 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
   const [leaveChannel] = useLeaveChannelMutation();
   const [updateRole] = useUpdateMemberRoleMutation();
   const [renameChannel] = useRenameChannelMutation();
+  const [reportChannelMutation] = useReportChannelMutation();
+
   const [loadMoreHistory, { isLoading: isLoadingMore }] = useLoadMoreHistoryMutation();
   const [joinChannel, { isLoading: isJoining }] = useJoinChannelMutation();
 
@@ -47,6 +52,9 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [banModalOpen, setBanModalOpen] = useState(false);
+  const [banChannel] = useBanChannelMutation();
 
   const [searchVal, setSearchVal] = useState('');
   const [debouncedSearchVal, setDebouncedSearchVal] = useState('');
@@ -91,14 +99,19 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
   const currentChannel = channels.find((c) => c.channelId === channelId);
   const showStatus = !isChannelsLoading && !!(currentChannel || channelDetails);
   const title = currentChannel?.title || channelDetails?.title || `Channel ${channelId?.slice(0, 8)}`;
+  const photoUrl = currentChannel?.photoUrl || channelDetails?.photoUrl;
   const role = currentChannel?.role;
   const memberCount = currentChannel?.memberIds?.length || channelDetails?.memberCount || 0;
 
   // Main chat history query (no query filter, but with dynamic limit)
-  const { data: historyData, isLoading: isHistoryLoading } = useGetHistoryQuery(
+  const { data: historyData, isLoading: isHistoryLoading, error: historyError } = useGetHistoryQuery(
     { userId, channelId: channelId!, limit: historyLimit },
     { skip: !channelId }
   );
+  
+  const isBanned = (historyError as any)?.status === 403 || channelDetails?.isBanned;
+  const banMessage = (historyError as any)?.data?.message || 'This channel has been restricted by an administrator.';
+
   const notifications = historyData?.items ?? [];
   const hasMore = historyData?.hasMore ?? false;
 
@@ -189,11 +202,31 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
 
   const activeParentNotification = activeThreadId ? (notifications.find((n) => n.id === activeThreadId) ?? null) : null;
 
+  const handleReport = async (reason: string) => {
+    try {
+      await reportChannelMutation({ channelId, reason }).unwrap();
+    } catch (err) {
+      console.error('Failed to report channel:', err);
+      throw err;
+    }
+  };
+
+  const handleBan = async (reason: string, durationDays?: number) => {
+    try {
+      await banChannel({ channelId, reason, durationDays }).unwrap();
+      navigate(PageRoutes.channelBase);
+    } catch (err) {
+      console.error('Failed to ban channel:', err);
+      throw err;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-neutral-950 flex-1 relative">
       <ChannelHeader
         title={title}
         channelId={channelId!}
+        photoUrl={photoUrl}
         showStatus={showStatus}
         memberCount={memberCount}
         role={role}
@@ -202,42 +235,65 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
         onInviteClick={() => setInviteModalOpen(true)}
         onLeaveClick={() => setLeaveModalOpen(true)}
         onRenameClick={() => setRenameModalOpen(true)}
+        onReportClick={() => setReportModalOpen(true)}
         searchVal={searchVal}
         setSearchVal={setSearchVal}
         showSearch={showSearch}
         setShowSearch={setShowSearch}
         onBackClick={() => navigate(PageRoutes.channelBase)}
+        onBanClick={() => setBanModalOpen(true)}
       />
 
-      {showMembers && (
-        <MembersList
-          members={members}
-          userId={userId}
-          channelId={channelId!}
-          role={role}
-          updateRole={updateRole}
-        />
+      {isBanned ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-neutral-950">
+          <div className="w-24 h-24 bg-rose-500/10 rounded-[32px] flex items-center justify-center text-rose-500 mb-6 animate-pulse">
+            <ShieldAlert size={48} />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Channel Restricted</h2>
+          <div className="max-w-md bg-neutral-900/50 border border-neutral-800 p-6 rounded-3xl backdrop-blur-sm">
+            <p className="text-neutral-400 text-sm leading-relaxed">
+              {banMessage}
+            </p>
+          </div>
+          <p className="mt-8 text-xs text-neutral-600 flex items-center gap-2">
+            <Info size={12} />
+            If you believe this is a mistake, please contact support.
+          </p>
+        </div>
+      ) : (
+        <>
+          {showMembers && (
+            <MembersList
+              members={members}
+              userId={userId}
+              channelId={channelId!}
+              role={role}
+              updateRole={updateRole}
+            />
+          )}
+
+          {activeThreadId && <ThreadBar onBack={() => setActiveThreadId(null)} />}
+
+          <MessageFeed
+            userId={userId}
+            channelId={channelId!}
+            isActive={isActive}
+            notifications={notifications}
+            displayedNotifications={displayedNotifications}
+            hasMore={hasMore}
+            isHistoryLoading={isHistoryLoading}
+            isLoadingMore={isLoadingMore}
+            loadMoreHistory={loadMoreHistory}
+            activeThreadId={activeThreadId}
+            setActiveThreadId={setActiveThreadId}
+            activeParentNotification={activeParentNotification}
+            members={members}
+            query={debouncedSearchVal}
+            highlightMessageId={highlightMessageId}
+            isMember={!!role}
+          />
+        </>
       )}
-
-      {activeThreadId && <ThreadBar onBack={() => setActiveThreadId(null)} />}
-
-      <MessageFeed
-        userId={userId}
-        channelId={channelId!}
-        isActive={isActive}
-        notifications={notifications}
-        displayedNotifications={displayedNotifications}
-        hasMore={hasMore}
-        isHistoryLoading={isHistoryLoading}
-        isLoadingMore={isLoadingMore}
-        loadMoreHistory={loadMoreHistory}
-        activeThreadId={activeThreadId}
-        setActiveThreadId={setActiveThreadId}
-        activeParentNotification={activeParentNotification}
-        members={members}
-        query={debouncedSearchVal}
-        highlightMessageId={highlightMessageId}
-      />
 
       {/* Telegram-style Search Results Overlay */}
       {showSearch && searchVal.trim() !== '' && (
@@ -297,38 +353,40 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
         </div>
       )}
 
-      {!role ? (
-        <div className="h-[72px] px-4 border-t border-neutral-800 bg-neutral-900 flex items-center justify-center shrink-0">
-          <Button
-            onClick={() => joinChannel({ userId, channelId })}
-            disabled={isJoining}
-            className="w-full max-w-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold h-11 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
-          >
-            {isJoining ? (
-              <Loader size="sm" className="text-white" />
-            ) : (
-              <Bell className="h-4 w-4 text-violet-200" />
-            )}
-            Subscribe to Channel
-          </Button>
-        </div>
-      ) : role === 'SUBSCRIBER' && !activeThreadId ? (
-        <div className="h-[72px] px-4 border-t border-neutral-800 bg-neutral-900 flex items-center justify-center shrink-0">
-          <Button
-            onClick={() => setLeaveModalOpen(true)}
-            className="w-full max-w-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/15 hover:border-red-500/30 font-bold h-11 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.98]"
-          >
-            <BellOff className="h-4 w-4" />
-            Unsubscribe
-          </Button>
-        </div>
-      ) : (
-        <NotificationForm
-          senderId={userId}
-          channelId={channelId}
-          replyingTo={activeThreadId ? activeParentNotification : null}
-          isThreadView={!!activeThreadId}
-        />
+      {!isBanned && (
+        !role ? (
+          <div className="h-[72px] px-4 border-t border-neutral-800 bg-neutral-900 flex items-center justify-center shrink-0">
+            <Button
+              onClick={() => joinChannel({ userId, channelId })}
+              disabled={isJoining}
+              className="w-full max-w-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold h-11 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+            >
+              {isJoining ? (
+                <Loader size="sm" className="text-white" />
+              ) : (
+                <Bell className="h-4 w-4 text-violet-200" />
+              )}
+              Subscribe to Channel
+            </Button>
+          </div>
+        ) : role === 'SUBSCRIBER' && !activeThreadId ? (
+          <div className="h-[72px] px-4 border-t border-neutral-800 bg-neutral-900 flex items-center justify-center shrink-0">
+            <Button
+              onClick={() => setLeaveModalOpen(true)}
+              className="w-full max-w-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/15 hover:border-red-500/30 font-bold h-11 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-[0.98]"
+            >
+              <BellOff className="h-4 w-4" />
+              Unsubscribe
+            </Button>
+          </div>
+        ) : (
+          <NotificationForm
+            senderId={userId}
+            channelId={channelId}
+            replyingTo={activeThreadId ? activeParentNotification : null}
+            isThreadView={!!activeThreadId}
+          />
+        )
       )}
 
       <InviteModal
@@ -346,8 +404,22 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
       <RenameModal
         isOpen={renameModalOpen}
         onClose={() => setRenameModalOpen(false)}
-        onRename={(newTitle) => renameChannel({ channelId: channelId!, title: newTitle })}
+        onRename={(newTitle, newPhotoUrl) => renameChannel({ channelId: channelId!, title: newTitle, photoUrl: newPhotoUrl })}
         currentTitle={title}
+        currentPhotoUrl={photoUrl}
+      />
+
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        onReport={handleReport}
+      />
+
+      <BanModal
+        isOpen={banModalOpen}
+        onClose={() => setBanModalOpen(false)}
+        onBan={handleBan}
+        channelTitle={title}
       />
 
     </div>

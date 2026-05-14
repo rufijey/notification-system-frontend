@@ -88,7 +88,7 @@ export const $api = async (endpoint: string, init: CustomRequestInit = {}): Prom
 };
 
 const customBaseQuery: BaseQueryFn<
-  {
+  string | {
     url: string;
     method?: string;
     body?: unknown;
@@ -97,7 +97,9 @@ const customBaseQuery: BaseQueryFn<
   },
   unknown,
   unknown
-> = async ({ url, method, body, headers, useAuth }) => {
+> = async (arg) => {
+  const { url, method, body, headers, useAuth } = typeof arg === 'string' ? { url: arg } : arg;
+
   try {
     const response = await $api(url, {
       method,
@@ -124,6 +126,6 @@ const customBaseQuery: BaseQueryFn<
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: customBaseQuery,
-  tagTypes: ['Channels', 'History', 'Members'],
+  tagTypes: ['Channels', 'History', 'Members', 'Reports', 'Bans'],
   endpoints: () => ({}),
 });
