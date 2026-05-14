@@ -1,4 +1,4 @@
-import { X, Download, Maximize2 } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useCallback, useLayoutEffect, useState } from 'react';
-import { Loader } from '@/shared';
 import { NotificationBubble, ReadStatusTracker } from '@/entities/notifications';
 import type { Notification, ChannelMember } from '../../../../entities/notifications/model/types';
 
@@ -11,7 +10,6 @@ interface MessageFeedProps {
   displayedNotifications: Notification[];
   hasMore: boolean;
   isHistoryLoading: boolean;
-  isLoadingMore: boolean;
   loadMoreHistory: (arg: { userId: string; channelId: string; beforeSequence: number; query?: string }) => any;
   activeThreadId: string | null;
   setActiveThreadId: (id: string | null) => void;
@@ -30,7 +28,6 @@ export const MessageFeed = ({
   displayedNotifications,
   hasMore,
   isHistoryLoading,
-  isLoadingMore,
   loadMoreHistory,
   activeThreadId,
   setActiveThreadId,
@@ -86,7 +83,7 @@ export const MessageFeed = ({
   // Capture the first unread message when history is loaded
   useEffect(() => {
     if (!isMember) return;
-    
+
     if (!isHistoryLoading && displayedNotifications.length > 0 && !hasCapturedInitialUnreadRef.current) {
       const firstUnread = displayedNotifications.find(
         (msg) => msg.senderId !== userId && msg.status !== 'READ'

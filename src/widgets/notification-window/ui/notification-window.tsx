@@ -45,7 +45,7 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
   const [renameChannel] = useRenameChannelMutation();
   const [reportChannelMutation] = useReportChannelMutation();
 
-  const [loadMoreHistory, { isLoading: isLoadingMore }] = useLoadMoreHistoryMutation();
+  const [loadMoreHistory] = useLoadMoreHistoryMutation();
   const [joinChannel, { isLoading: isJoining }] = useJoinChannelMutation();
 
   const [showMembers, setShowMembers] = useState(false);
@@ -282,7 +282,6 @@ export const NotificationWindow = ({ userId, channelId, isActive = false }: Noti
             displayedNotifications={displayedNotifications}
             hasMore={hasMore}
             isHistoryLoading={isHistoryLoading}
-            isLoadingMore={isLoadingMore}
             loadMoreHistory={loadMoreHistory}
             activeThreadId={activeThreadId}
             setActiveThreadId={setActiveThreadId}

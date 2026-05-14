@@ -52,7 +52,7 @@ export const channelsApi = baseApi.injectEndpoints({
         });
       },
     }),
-    createChannel: build.mutation<Channel, { userId: string; memberIds: string[]; title?: string; id?: string }>({
+    createChannel: build.mutation<Channel, { userId: string; memberIds: string[]; title?: string; id?: string; photoUrl?: string }>({
       query: ({ userId, ...body }) => ({
         url: ApiRoutes.channels.create(userId),
         method: 'POST',

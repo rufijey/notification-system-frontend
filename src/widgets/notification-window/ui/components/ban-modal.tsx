@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { ShieldAlert, Gavel } from 'lucide-react';
 import { ActionModal } from './action-modal';
-import { Button } from '@/shared';
 
 interface BanModalProps {
   isOpen: boolean;
@@ -33,11 +32,22 @@ export const BanModal = ({ isOpen, onClose, onBan, channelTitle }: BanModalProps
       isOpen={isOpen}
       onClose={onClose}
       title="Ban Channel"
-      description={`You are about to restrict access to "${channelTitle}". This action will prevent all messages and visibility for the specified duration.`}
+      subtitle={`Restricting "${channelTitle}"`}
       variant="danger"
       icon={<ShieldAlert className="text-rose-500" size={24} />}
+      actionLabel="Apply Ban"
+      onAction={handleBan}
+      isLoading={isLoading}
+      isDisabled={!reason.trim()}
     >
-      <div className="space-y-6 mt-4">
+      <div className="space-y-6">
+        <div className="flex items-start gap-4 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
+          <Gavel className="text-rose-500 shrink-0" size={18} />
+          <p className="text-xs text-rose-200/70 leading-relaxed">
+            You are about to restrict access to this channel. This action will prevent all messages and visibility for the specified duration.
+          </p>
+        </div>
+
         <div className="space-y-2">
           <label className="text-[10px] font-black text-neutral-500 uppercase tracking-widest ml-1">
             Violation Reason
@@ -59,7 +69,7 @@ export const BanModal = ({ isOpen, onClose, onBan, channelTitle }: BanModalProps
               <button
                 key={days}
                 onClick={() => setDuration(days)}
-                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
                   duration === days
                     ? 'bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-500/20'
                     : 'bg-neutral-950 border-neutral-800 text-neutral-500 hover:border-neutral-700'
@@ -69,24 +79,6 @@ export const BanModal = ({ isOpen, onClose, onBan, channelTitle }: BanModalProps
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="flex gap-3 pt-2">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-400 rounded-xl py-6 font-bold"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleBan}
-            disabled={!reason.trim() || isLoading}
-            className="flex-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-6 font-bold shadow-xl shadow-rose-600/20 gap-2"
-          >
-            <Gavel size={18} />
-            {isLoading ? 'Processing...' : 'Apply Ban'}
-          </Button>
         </div>
       </div>
     </ActionModal>

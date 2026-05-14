@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, User, ExternalLink, Trash2, Shield } from 'lucide-react';
+import { AlertTriangle, Clock, User, ExternalLink, Trash2 } from 'lucide-react';
 import { Avatar, Button } from '@/shared';
 import { cn } from '@/shared/lib/utils';
 import type { ChannelReport } from '@/entities/admin/api/admin.api';
@@ -100,7 +100,6 @@ export const ReportCard = ({
         <div className="w-px h-4 bg-neutral-800 mx-1" />
         <Button
           onClick={onSelect}
-          variant="ghost"
           className={cn(
             "h-9 px-4 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all",
             isSelected
