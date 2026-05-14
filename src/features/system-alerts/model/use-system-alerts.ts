@@ -5,6 +5,7 @@ import { updateAppBadge } from '@/shared/lib/browser/badging';
 import { requestNotificationPermission } from '@/shared/lib/browser/notifications';
 import { registerAndSubscribePush } from '@/shared/lib/browser/web-push';
 import { getSocket } from '@/shared/lib/socket';
+import { SocketEvent } from '@/entities/notifications/model/constants';
 import { useGetChannelsQuery } from '@/entities/notifications/api';
 import { processOfflineQueue, updateHistoryCacheForChannel } from '@/entities/notifications/lib/offline-queue';
 
@@ -99,11 +100,25 @@ export const useSystemAlerts = () => {
       });
     };
 
-    const socket = getSocket(userId, accessToken, getCursors, handleSyncComplete);
+    const socket = getSocket(userId, accessToken);
 
     const handleConnect = () => {
-      console.log('Socket connected. Flushing outbox...');
+      console.log('Socket connected. Flushing outbox and initiating history sync...');
       processOfflineQueue(dispatch, store.getState);
+
+      const cursors = getCursors();
+      if (cursors.length > 0) {
+        const syncRequests = cursors.map(c => ({
+          channelId: c.channelId,
+          lastSequence: c.lastKnownSequence
+        }));
+
+        socket.emit(SocketEvent.SYNC_NOTIFICATIONS, { syncRequests }, (response: any) => {
+          if (response?.notifications) {
+            handleSyncComplete(response.notifications);
+          }
+        });
+      }
     };
 
     socket.on('connect', handleConnect);

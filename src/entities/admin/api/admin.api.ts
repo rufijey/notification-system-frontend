@@ -29,7 +29,7 @@ export const adminApi = baseApi.injectEndpoints({
           if (!accessToken || !userId) return;
 
           const { getSocket } = await import('@/shared/lib/socket');
-          const socket = getSocket(userId, accessToken, () => []);
+          const socket = getSocket(userId, accessToken);
 
           const handleReportCreated = (report: ChannelReport) => {
             console.log('[AdminAPI] Real-time report created:', report);
@@ -98,7 +98,7 @@ export const adminApi = baseApi.injectEndpoints({
           if (!accessToken || !userId) return;
 
           const { getSocket } = await import('@/shared/lib/socket');
-          const socket = getSocket(userId, accessToken, () => []);
+          const socket = getSocket(userId, accessToken);
 
           const handleChannelBanned = (ban: any) => {
             updateCachedData((draft) => {

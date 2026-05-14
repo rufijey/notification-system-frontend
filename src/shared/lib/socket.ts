@@ -1,12 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import { SocketEvent } from '../../entities/notifications/model/constants';
-import type { NotificationCursor, Notification } from '../../entities/notifications/model/types';
 import { BASE_URL } from '../api/base';
-
-interface SyncResponse {
-  notifications?: Notification[];
-  error?: string;
-}
 
 let socket: Socket | null = null;
 let currentSocketUserId: string | null = null;
