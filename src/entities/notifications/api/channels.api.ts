@@ -22,7 +22,7 @@ export const channelsApi = baseApi.injectEndpoints({
     getChannels: build.query<Channel[], string>({
       query: (userId) => ({ url: ApiRoutes.channels.list(userId) }),
       providesTags: ['Channels'],
-      transformResponse: async (response: Channel[], meta, arg) => {
+      transformResponse: async (response: Channel[]) => {
         // We can't easily use cryptoService here because it's not a hook and we don't have access to the store
         // But getChannels is called when the user is logged in.
         // Actually, it's better to decrypt in the UI or in onCacheEntryAdded using updateCachedData.
@@ -123,7 +123,7 @@ export const channelsApi = baseApi.injectEndpoints({
       },
     }),
     createChannel: build.mutation<Channel, { userId: string; memberIds: string[]; title?: string; id?: string; photoUrl?: string; isEncrypted?: boolean }>({
-      queryFn: async (arg, api, extraOptions, baseQuery) => {
+      queryFn: async (arg, api, _extraOptions, baseQuery) => {
         const { userId, memberIds, title, id, photoUrl, isEncrypted } = arg;
         let encryptedKeys: Record<string, string> | undefined = undefined;
 
@@ -163,7 +163,7 @@ export const channelsApi = baseApi.injectEndpoints({
 
         if (result.data && isEncrypted) {
           // Cache the key for the newly created channel
-          const channel = result.data as Channel;
+          // const channel = result.data as Channel;
           // We already have the aesKey from step 1, but we need to store it
           // For simplicity, we'll let the cryptoService decrypt it from the member's encryptedKey on next access
           // Or we could pass it to cryptoService here.

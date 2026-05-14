@@ -22,7 +22,7 @@ import {
 export const notificationsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getHistory: build.query<{ items: Notification[]; hasMore: boolean }, { userId: string; channelId: string; limit?: number; query?: string }>({
-      queryFn: async (arg, api, extraOptions, baseQuery) => {
+      queryFn: async (arg, api, _extraOptions, baseQuery) => {
         const { channelId, limit = 30, query } = arg;
         const result = await baseQuery({
           url: query
@@ -127,7 +127,7 @@ export const notificationsApi = baseApi.injectEndpoints({
       },
     }),
     loadMoreHistory: build.mutation<{ items: Notification[]; hasMore: boolean }, { userId: string; channelId: string; beforeSequence: number; query?: string }>({
-      queryFn: async (arg, api, extraOptions, baseQuery) => {
+      queryFn: async (arg, api, _extraOptions, baseQuery) => {
         const { channelId, beforeSequence, query, userId } = arg;
         const result = await baseQuery({
           url: query
@@ -172,7 +172,7 @@ export const notificationsApi = baseApi.injectEndpoints({
       },
     }),
     sendNotification: build.mutation<{ success: boolean; status: 'sent' | 'queued'; notification?: Notification }, { senderId: string; channelId: string; notification: string; clientNotificationId?: string; priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; parentNotificationId?: string; attachments?: string[] }>({
-      queryFn: async (arg, api, extraOptions, baseQuery) => {
+      queryFn: async (arg, api, _extraOptions, baseQuery) => {
         const { senderId, channelId, notification, clientNotificationId, priority, parentNotificationId, attachments } = arg;
         
         // Check if channel is encrypted
