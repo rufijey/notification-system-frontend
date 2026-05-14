@@ -26,14 +26,37 @@ export const channelsApi = baseApi.injectEndpoints({
         const state = getState() as RootState;
         const accessToken = state.user.accessToken;
 
+        const socket = getSocket(arg, accessToken);
+
         const getCursors = (): NotificationCursor[] => {
           const apiState = (getState() as any)[baseApi.reducerPath];
           const queryKey = `getChannels("${arg}")`;
           const currentChannels = apiState.queries[queryKey]?.data as Channel[] | undefined;
-          return (currentChannels || []).map(c => ({ channelId: c.channelId, lastKnownSequence: c.lastReadSequence }));
+          return (currentChannels || []).map(c => ({ channelId: c.channelId, lastKnownSequence: c.lastNotificationSequence || c.lastReadSequence || 0 }));
         };
 
-        const socket = getSocket(arg, accessToken, getCursors);
+        const channelListListener = createChannelListListener(arg, updateCachedData, socket);
+
+        const handleSync = () => {
+          const cursors = getCursors();
+          if (cursors.length === 0) return;
+
+          const syncRequests = cursors.map(c => ({
+            channelId: c.channelId,
+            lastSequence: c.lastKnownSequence
+          }));
+
+          socket.emit(SocketEvent.SYNC_NOTIFICATIONS, { syncRequests }, (response: { notifications?: any[] }) => {
+            if (response?.notifications && Array.isArray(response.notifications)) {
+              console.log(`[Sync] Processing ${response.notifications.length} missed notifications for channel list`);
+              response.notifications.forEach(notif => {
+                channelListListener(notif);
+              });
+            }
+          });
+        };
+
+        socket.on('connect', handleSync);
 
         const cleanupActivity = initActivityTracking(socket);
 
@@ -42,13 +65,16 @@ export const channelsApi = baseApi.injectEndpoints({
           cacheDataLoaded,
           cacheEntryRemoved,
           listeners: {
-            [SocketEvent.RECEIVE_NOTIFICATION]: createChannelListListener(arg, updateCachedData, socket),
+            [SocketEvent.RECEIVE_NOTIFICATION]: channelListListener,
             [SocketEvent.CHANNEL_READ]: createChannelReadListener(arg, updateCachedData),
             [SocketEvent.NOTIFICATION_READ]: createMessageReadListener(arg, updateCachedData),
             [SocketEvent.CHANNEL_JOINED]: createChannelJoinedListener(updateCachedData),
             [SocketEvent.CHANNEL_UPDATED]: createChannelUpdatedListener(arg, updateCachedData),
           },
-          onCleanup: cleanupActivity,
+          onCleanup: () => {
+            cleanupActivity();
+            socket.off('connect', handleSync);
+          },
         });
       },
     }),

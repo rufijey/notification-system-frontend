@@ -41,6 +41,33 @@ export const notificationsApi = baseApi.injectEndpoints({
         const listener = createNotificationListener(arg.channelId, arg.userId, (cb) => {
           updateCachedData((draft) => cb(draft.items));
         }, socket, arg.query);
+
+        const handleSync = () => {
+          const apiState = (getState() as any)[baseApi.reducerPath];
+          // Find the current history for this channel to get the last known sequence
+          const queryKey = Object.keys(apiState.queries).find(key => 
+            key.startsWith('getHistory') && key.includes(`"channelId":"${arg.channelId}"`)
+          );
+          
+          const historyData = queryKey ? apiState.queries[queryKey]?.data?.items as any[] : [];
+          const lastKnownSequence = historyData?.length > 0 
+            ? Math.max(...historyData.map(m => m.sequence))
+            : 0;
+
+          console.log(`[Sync] Initiating history sync for channel ${arg.channelId} from sequence ${lastKnownSequence}`);
+
+          socket.emit(SocketEvent.SYNC_NOTIFICATIONS, { 
+            syncRequests: [{ channelId: arg.channelId, lastSequence: lastKnownSequence }] 
+          }, (response: { notifications?: any[] }) => {
+            if (response?.notifications && Array.isArray(response.notifications)) {
+              console.log(`[Sync] Processing ${response.notifications.length} missed notifications for history`);
+              response.notifications.forEach(notif => listener(notif));
+            }
+          });
+        };
+
+        socket.on('connect', handleSync);
+
         const readListener = createNotificationReadListener(arg.channelId, arg.userId, (cb) => {
           updateCachedData((draft) => cb(draft.items));
         });
@@ -60,6 +87,9 @@ export const notificationsApi = baseApi.injectEndpoints({
             [SocketEvent.NOTIFICATION_DELETED]: createNotificationDeletedListener(arg.channelId, (cb) => {
               updateCachedData((draft) => cb(draft.items));
             }),
+          },
+          onCleanup: () => {
+            socket.off('connect', handleSync);
           },
         });
       },

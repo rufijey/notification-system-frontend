@@ -1,7 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export async function uploadFileToS3(file: File, token: string): Promise<string> {
-  // 1. Get presigned URL
   const response = await fetch(`${API_URL}/api/upload/presigned-url`, {
     method: 'POST',
     headers: {
@@ -20,7 +19,6 @@ export async function uploadFileToS3(file: File, token: string): Promise<string>
 
   const { uploadUrl, fileUrl } = await response.json();
 
-  // 2. Upload file to S3
   const uploadResponse = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {

@@ -13,9 +13,7 @@ let currentSocketUserId: string | null = null;
 
 export const getSocket = (
   userId: string,
-  accessToken?: string | null,
-  getCursors?: () => NotificationCursor[],
-  onSyncComplete?: (notifications: Notification[]) => void
+  accessToken?: string | null
 ): Socket => {
   if (!socket || currentSocketUserId !== userId) {
     if (socket) {
@@ -26,26 +24,17 @@ export const getSocket = (
       path: '/api/socket.io',
       auth: { token: accessToken },
       transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
     });
 
     socket.on('connect', () => {
-      console.log('Socket connected, initiating sync...');
-      if (getCursors) {
-        const cursors = getCursors();
-        if (cursors.length > 0) {
-          const syncRequests = cursors.map(c => ({
-            channelId: c.channelId,
-            lastSequence: c.lastKnownSequence
-          }));
+      console.log('Socket connected');
+    });
 
-          socket?.emit(SocketEvent.SYNC_NOTIFICATIONS, { syncRequests }, (response: SyncResponse) => {
-            console.log('Sync complete:', response);
-            if (response?.notifications && onSyncComplete) {
-              onSyncComplete(response.notifications);
-            }
-          });
-        }
-      }
+    socket.on('reconnect', (attempt) => {
+      console.log('Socket reconnected after', attempt, 'attempts');
     });
 
     currentSocketUserId = userId;
