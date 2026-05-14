@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { StoreProvider } from './providers/store/index';
 import { AppRouter } from './router/index';
+import { CryptoInitializer } from './providers/crypto-initializer';
 import { initAuthThunk } from '@/features/auth/model/init-auth';
 import { useSystemAlerts } from '@/features/system-alerts/model/use-system-alerts';
 import type { AppDispatch, RootState } from './providers/store';
@@ -31,6 +32,7 @@ const AppContent = () => {
   return (
     <>
       <TopProgressBar active={isLoading} />
+      <CryptoInitializer />
       <AppRouter />
     </>
   );

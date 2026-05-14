@@ -22,6 +22,8 @@ export interface Channel {
   lastNotificationStatus?: string;
   lastNotificationSequence?: number;
   lastActivity: string;
+  isEncrypted?: boolean;
+  encryptedKey?: string;
 
 
   unreadCount: number;
