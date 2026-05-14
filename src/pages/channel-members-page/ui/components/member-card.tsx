@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, ShieldCheck } from 'lucide-react';
-import { Avatar } from '@/shared';
+import { Avatar, Modal, Button } from '@/shared';
 import { cn } from '@/shared/lib/utils';
 import { PageRoutes } from '@/shared/config';
 import type { ChannelMember } from '@/entities/notifications/model/types';
@@ -20,8 +21,19 @@ export const MemberCard = ({
   isUpdatingRole,
   onUpdateRole,
 }: MemberCardProps) => {
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const navigate = useNavigate();
   const isSelf = member.userId === currentUserId;
+
+  const handleMakeAdmin = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsConfirmModalOpen(true);
+  };
+
+  const confirmMakeAdmin = () => {
+    onUpdateRole(member.userId, 'ADMIN');
+    setIsConfirmModalOpen(false);
+  };
 
   const handleProfileClick = () => {
     navigate(`${PageRoutes.profile}/${member.userId}`);
@@ -98,7 +110,7 @@ export const MemberCard = ({
                 Demote
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); onUpdateRole(member.userId, 'ADMIN'); }}
+                onClick={handleMakeAdmin}
                 disabled={isUpdatingRole}
                 className="p-1.5 text-rose-400 hover:text-white hover:bg-rose-500/20 rounded-lg cursor-pointer shrink-0 transition-colors"
                 title="Make Admin"
@@ -120,6 +132,54 @@ export const MemberCard = ({
           )}
         </div>
       )}
+
+      <Modal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        title="Admin Privilege Warning"
+      >
+        <div className="flex flex-col items-center gap-5 py-2">
+          {/* Warning Icon */}
+          <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20 relative">
+            <div className="absolute inset-0 bg-rose-500/20 rounded-full blur-xl animate-pulse" />
+            <ShieldAlert className="w-8 h-8 text-rose-500 relative z-10" />
+          </div>
+          
+          <div className="text-center space-y-3">
+            <p className="text-[15px] text-neutral-300">
+              You are about to promote <span className="font-bold text-white text-base">{member.fullName || member.username}</span> to <span className="font-bold text-rose-400">Admin</span>.
+            </p>
+            
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-left">
+              <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <ShieldAlert size={12} />
+                Critical Action
+              </h4>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                This user will gain full administrative control over this channel, including the ability to manage other members, edit channel details, and delete messages.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full mt-2">
+            <button
+              onClick={() => setIsConfirmModalOpen(false)}
+              disabled={isUpdatingRole}
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-bold bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmMakeAdmin}
+              disabled={isUpdatingRole}
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <ShieldAlert size={16} />
+              Confirm Promotion
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
