@@ -1,4 +1,4 @@
-const CACHE_NAME = 'notification-system-v1';
+const CACHE_NAME = 'notification-system-v1.1.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -64,24 +64,46 @@ if (isCacheEnabled()) {
       return;
     }
 
-    event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => {
-        return cache.match(event.request).then((cachedResponse) => {
-          // Stale-While-Revalidate: Return cached response instantly if available,
-          // while updating the cache with the latest version from the network in the background.
-          const fetchPromise = fetch(event.request).then((networkResponse) => {
+    const isHtmlRequest = event.request.headers.get('accept')?.includes('text/html') ||
+                          url.pathname === '/' ||
+                          url.pathname.endsWith('.html');
+
+    if (isHtmlRequest) {
+      // Network-First strategy for HTML/SPA main documents
+      event.respondWith(
+        fetch(event.request)
+          .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
             }
             return networkResponse;
-          }).catch((err) => {
-            console.warn('[Service Worker] Network request failed (offline), serving cache fallback if available:', err);
-          });
+          })
+          .catch(() => {
+            return caches.match(event.request);
+          })
+      );
+    } else {
+      // Stale-While-Revalidate strategy for other static assets
+      event.respondWith(
+        caches.open(CACHE_NAME).then((cache) => {
+          return cache.match(event.request).then((cachedResponse) => {
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                cache.put(event.request, networkResponse.clone());
+              }
+              return networkResponse;
+            }).catch((err) => {
+              console.warn('[Service Worker] Network request failed (offline), serving cache fallback if available:', err);
+            });
 
-          return cachedResponse || fetchPromise;
-        });
-      })
-    );
+            return cachedResponse || fetchPromise;
+          });
+        })
+      );
+    }
   });
 }
 
