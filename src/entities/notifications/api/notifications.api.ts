@@ -3,7 +3,6 @@ import { getSocket } from '@/shared/lib/socket';
 import type { RootState } from '@/app/providers/store';
 import type { Notification } from '../model/types';
 import { SocketEvent } from '../model/constants';
-import { cryptoService } from '@/shared/lib/crypto-service';
 import { generateId } from '@/shared/lib/utils';
 import { ApiRoutes } from '@/shared/config';
 import { bindSocketToCache } from '../lib/socket-cache-binder';
@@ -22,33 +21,11 @@ import {
 export const notificationsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getHistory: build.query<{ items: Notification[]; hasMore: boolean }, { userId: string; channelId: string; limit?: number; query?: string }>({
-      queryFn: async (arg, api, _extraOptions, baseQuery) => {
-        const { channelId, limit = 30, query } = arg;
-        const result = await baseQuery({
-          url: query
-            ? `${ApiRoutes.notifications.history(channelId)}?limit=${limit}&query=${encodeURIComponent(query)}`
-            : `${ApiRoutes.notifications.history(channelId)}?limit=${limit}`,
-        });
-
-        if (result.data) {
-          const data = result.data as { items: Notification[]; hasMore: boolean };
-          const state = api.getState() as RootState;
-          const channels = (state.api.queries[`getChannels("${arg.userId}")`]?.data as any[]) || [];
-          const channel = channels.find(c => c.channelId === channelId);
-
-          if (channel?.isEncrypted) {
-            const decryptedItems = await Promise.all(
-              data.items.map(async (item) => ({
-                ...item,
-                text: await cryptoService.decryptMessage(channelId, item.text),
-              }))
-            );
-            return { data: { ...data, items: decryptedItems } };
-          }
-        }
-
-        return result as { data: { items: Notification[]; hasMore: boolean } };
-      },
+      query: (arg) => ({
+        url: arg.query
+          ? `${ApiRoutes.notifications.history(arg.channelId)}?limit=${arg.limit || 30}&query=${encodeURIComponent(arg.query)}`
+          : `${ApiRoutes.notifications.history(arg.channelId)}?limit=${arg.limit || 30}`,
+      }),
       providesTags: ['History'],
       async onCacheEntryAdded(
         arg,
@@ -65,17 +42,8 @@ export const notificationsApi = baseApi.injectEndpoints({
         }, socket, arg.query);
 
         // Wrap listener with decryption logic
-        const listener = async (notification: Notification) => {
-          const currentState = getState() as RootState;
-          const channels = (currentState.api.queries[`getChannels("${arg.userId}")`]?.data as any[]) || [];
-          const channel = channels.find(c => c.channelId === notification.channelId);
-
-          let decryptedNotification = notification;
-          if (channel?.isEncrypted) {
-            const decryptedText = await cryptoService.decryptMessage(notification.channelId, notification.text);
-            decryptedNotification = { ...notification, text: decryptedText };
-          }
-          baseListener(decryptedNotification);
+        const listener = (notification: Notification) => {
+          baseListener(notification);
         };
 
         const handleSync = () => {
@@ -127,33 +95,11 @@ export const notificationsApi = baseApi.injectEndpoints({
       },
     }),
     loadMoreHistory: build.mutation<{ items: Notification[]; hasMore: boolean }, { userId: string; channelId: string; beforeSequence: number; query?: string }>({
-      queryFn: async (arg, api, _extraOptions, baseQuery) => {
-        const { channelId, beforeSequence, query, userId } = arg;
-        const result = await baseQuery({
-          url: query
-            ? `${ApiRoutes.notifications.history(channelId)}?limit=30&beforeSequence=${beforeSequence}&query=${encodeURIComponent(query)}`
-            : `${ApiRoutes.notifications.history(channelId)}?limit=30&beforeSequence=${beforeSequence}`,
-        });
-
-        if (result.data) {
-          const data = result.data as { items: Notification[]; hasMore: boolean };
-          const state = api.getState() as RootState;
-          const channels = (state.api.queries[`getChannels("${userId}")`]?.data as any[]) || [];
-          const channel = channels.find(c => c.channelId === channelId);
-
-          if (channel?.isEncrypted) {
-            const decryptedItems = await Promise.all(
-              data.items.map(async (item) => ({
-                ...item,
-                text: await cryptoService.decryptMessage(channelId, item.text),
-              }))
-            );
-            return { data: { ...data, items: decryptedItems } };
-          }
-        }
-
-        return result as { data: { items: Notification[]; hasMore: boolean } };
-      },
+      query: (arg) => ({
+        url: arg.query
+          ? `${ApiRoutes.notifications.history(arg.channelId)}?limit=30&beforeSequence=${arg.beforeSequence}&query=${encodeURIComponent(arg.query)}`
+          : `${ApiRoutes.notifications.history(arg.channelId)}?limit=30&beforeSequence=${arg.beforeSequence}`,
+      }),
       async onQueryStarted({ userId, channelId, query }, { dispatch, getState, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -172,28 +118,18 @@ export const notificationsApi = baseApi.injectEndpoints({
       },
     }),
     sendNotification: build.mutation<{ success: boolean; status: 'sent' | 'queued'; notification?: Notification }, { senderId: string; channelId: string; notification: string; clientNotificationId?: string; priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; parentNotificationId?: string; attachments?: string[] }>({
-      queryFn: async (arg, api, _extraOptions, baseQuery) => {
-        const { senderId, channelId, notification, clientNotificationId, priority, parentNotificationId, attachments } = arg;
-        
-        // Check if channel is encrypted
-        const state = api.getState() as RootState;
-        const channelsQueryKey = `getChannels("${senderId}")`;
-        const channels = (state.api.queries[channelsQueryKey]?.data as any[]) || [];
-        const channel = channels.find(c => c.channelId === channelId);
-
-        let text = notification;
-        if (channel?.isEncrypted) {
-          text = await cryptoService.encryptMessage(channelId, notification);
-        }
-
-        const result = await baseQuery({
-          url: ApiRoutes.notifications.send(senderId),
-          method: 'POST',
-          body: { channelId, text, clientNotificationId: clientNotificationId || generateId(), priority, parentNotificationId, attachments },
-        });
-
-        return result as { data: { success: boolean; status: 'sent' | 'queued'; notification?: Notification } };
-      },
+      query: (arg) => ({
+        url: ApiRoutes.notifications.send(arg.senderId),
+        method: 'POST',
+        body: {
+          channelId: arg.channelId,
+          text: arg.notification,
+          clientNotificationId: arg.clientNotificationId || generateId(),
+          priority: arg.priority,
+          parentNotificationId: arg.parentNotificationId,
+          attachments: arg.attachments,
+        },
+      }),
       async onQueryStarted({ senderId, channelId, notification, clientNotificationId, priority, parentNotificationId, attachments }, { dispatch, getState, queryFulfilled }) {
         if (!channelId) return;
 

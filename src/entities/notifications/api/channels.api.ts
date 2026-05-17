@@ -3,8 +3,6 @@ import { getSocket } from '@/shared/lib/socket';
 import type { RootState } from '@/app/providers/store';
 import type { Channel, NotificationCursor } from '../model/types';
 import { SocketEvent } from '../model/constants';
-import * as crypto from '@/shared/lib/crypto';
-import { cryptoService } from '@/shared/lib/crypto-service';
 import { userApi } from '@/entities/user/api/user.api';
 import { initActivityTracking } from '../lib/activity';
 import { ApiRoutes } from '@/shared/config';
@@ -36,24 +34,6 @@ export const channelsApi = baseApi.injectEndpoints({
         const state = getState() as RootState;
         const currentUserId = state.user.currentUserId;
 
-        // Initialize keys for all encrypted channels and decrypt last messages
-        if (currentUserId) {
-          channels.forEach(async (channel) => {
-            if (channel.isEncrypted && channel.encryptedKey && channel.lastNotification) {
-              await cryptoService.getChannelKey(channel.channelId, channel.encryptedKey);
-              const decryptedText = await cryptoService.decryptMessage(channel.channelId, channel.lastNotification);
-              
-              updateCachedData((draft) => {
-                const draftChannel = draft.find(c => c.channelId === channel.channelId);
-                if (draftChannel) {
-                  draftChannel.lastNotification = decryptedText;
-                }
-              });
-            } else if (channel.isEncrypted && channel.encryptedKey) {
-              cryptoService.getChannelKey(channel.channelId, channel.encryptedKey);
-            }
-          });
-        }
 
         const accessToken = state.user.accessToken;
 
@@ -74,10 +54,6 @@ export const channelsApi = baseApi.injectEndpoints({
           const channel = channels.find(c => c.channelId === notification.channelId);
 
           let decryptedNotification = notification;
-          if (channel?.isEncrypted) {
-            const decryptedText = await cryptoService.decryptMessage(notification.channelId, notification.text);
-            decryptedNotification = { ...notification, text: decryptedText };
-          }
           baseChannelListListener(decryptedNotification);
         };
 
@@ -123,54 +99,11 @@ export const channelsApi = baseApi.injectEndpoints({
       },
     }),
     createChannel: build.mutation<Channel, { userId: string; memberIds: string[]; title?: string; id?: string; photoUrl?: string; isEncrypted?: boolean }>({
-      queryFn: async (arg, api, _extraOptions, baseQuery) => {
-        const { userId, memberIds, title, id, photoUrl, isEncrypted } = arg;
-        let encryptedKeys: Record<string, string> | undefined = undefined;
-
-        if (isEncrypted) {
-          try {
-            // 1. Generate AES key for the channel
-            const aesKey = await crypto.generateChannelKey();
-            const aesKeyBase64 = await crypto.exportAESKey(aesKey);
-
-            // 2. Fetch public keys of all members
-            const allMembers = Array.from(new Set([...memberIds, userId]));
-            const publicKeysResult = await api.dispatch(userApi.endpoints.getPublicKeys.initiate(allMembers)).unwrap();
-
-            // 3. Encrypt AES key for each member
-            encryptedKeys = {};
-            for (const memberId of allMembers) {
-              const pubKeyBase64 = publicKeysResult[memberId];
-              if (pubKeyBase64) {
-                const pubKey = await crypto.importPublicKey(pubKeyBase64);
-                encryptedKeys[memberId] = await crypto.encryptWithPublicKey(pubKey, aesKeyBase64);
-              }
-            }
-
-            // 4. Pre-cache the channel key in cryptoService so we don't have to decrypt it later
-            // We'll need the channel ID, which we'll get from the response
-          } catch (e) {
-            console.error('Encryption failed during channel creation:', e);
-            return { error: { status: 500, data: 'Encryption failed' } as any };
-          }
-        }
-
-        const result = await baseQuery({
-          url: ApiRoutes.channels.create(userId),
-          method: 'POST',
-          body: { memberIds, title, id, photoUrl, isEncrypted, encryptedKeys },
-        });
-
-        if (result.data && isEncrypted) {
-          // Cache the key for the newly created channel
-          // const channel = result.data as Channel;
-          // We already have the aesKey from step 1, but we need to store it
-          // For simplicity, we'll let the cryptoService decrypt it from the member's encryptedKey on next access
-          // Or we could pass it to cryptoService here.
-        }
-
-        return result as { data: Channel };
-      },
+      query: (arg) => ({
+        url: ApiRoutes.channels.create(arg.userId),
+        method: 'POST',
+        body: arg,
+      }),
       invalidatesTags: ['Channels'],
     }),
     joinChannel: build.mutation<void, { userId: string; channelId: string }>({
