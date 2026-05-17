@@ -3,7 +3,6 @@ import { getSocket } from '@/shared/lib/socket';
 import type { RootState } from '@/app/providers/store';
 import type { Channel, NotificationCursor } from '../model/types';
 import { SocketEvent } from '../model/constants';
-import { userApi } from '@/entities/user/api/user.api';
 import { initActivityTracking } from '../lib/activity';
 import { ApiRoutes } from '@/shared/config';
 import { bindSocketToCache } from '../lib/socket-cache-binder';
@@ -30,9 +29,8 @@ export const channelsApi = baseApi.injectEndpoints({
         arg,
         { updateCachedData, cacheDataLoaded, cacheEntryRemoved, getState }
       ) {
-        const { data: channels } = await cacheDataLoaded;
+        await cacheDataLoaded;
         const state = getState() as RootState;
-        const currentUserId = state.user.currentUserId;
 
 
         const accessToken = state.user.accessToken;
@@ -49,12 +47,7 @@ export const channelsApi = baseApi.injectEndpoints({
         const baseChannelListListener = createChannelListListener(arg, updateCachedData, socket);
 
         const channelListListener = async (notification: any) => {
-          const currentState = getState() as RootState;
-          const channels = (currentState.api.queries[`getChannels("${arg}")`]?.data as any[]) || [];
-          const channel = channels.find(c => c.channelId === notification.channelId);
-
-          let decryptedNotification = notification;
-          baseChannelListListener(decryptedNotification);
+          baseChannelListListener(notification);
         };
 
         const handleSync = () => {
