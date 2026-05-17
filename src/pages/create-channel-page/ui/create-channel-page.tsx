@@ -19,7 +19,6 @@ export const CreateChannelPage = () => {
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isEncrypted, setIsEncrypted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const token = useSelector((state: RootState) => state.user.accessToken);
@@ -62,7 +61,6 @@ export const CreateChannelPage = () => {
         title: title.trim(),
         id: customId.trim() || undefined,
         photoUrl,
-        isEncrypted,
       }).unwrap();
       navigate(`${PageRoutes.channelBase}/${channel.channelId}`);
     } catch (err: any) {
@@ -163,27 +161,6 @@ export const CreateChannelPage = () => {
                   <HelpCircle size={10} className="shrink-0" />
                   If left blank, a random unique identifier will be generated automatically.
                 </p>
-              </div>
-
-              {/* Encryption Toggle */}
-              <div className="pt-2">
-                <div 
-                  className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${isEncrypted ? 'bg-emerald-600/10 border-emerald-500/30 ring-1 ring-emerald-500/20' : 'bg-neutral-900 border-neutral-800 hover:border-neutral-700'}`}
-                  onClick={() => setIsEncrypted(!isEncrypted)}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isEncrypted ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-neutral-800 text-neutral-400'}`}>
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-bold text-white">End-to-End Encryption</p>
-                      <p className="text-[10px] text-neutral-500">Only members will be able to read messages</p>
-                    </div>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors ${isEncrypted ? 'bg-emerald-500' : 'bg-neutral-700'}`}>
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isEncrypted ? 'right-1' : 'left-1'}`} />
-                  </div>
-                </div>
               </div>
             </div>
 

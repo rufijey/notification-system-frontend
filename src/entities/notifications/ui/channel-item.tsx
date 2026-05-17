@@ -1,4 +1,3 @@
-import { Lock } from 'lucide-react';
 import { cn } from '../../../shared/lib/utils';
 import { Avatar } from '@/shared';
 import { type Channel } from '../../notifications/model/types';
@@ -47,9 +46,6 @@ export const ChannelItem = ({ channel, isSelected, onClick }: ChannelItemProps) 
         <div className="flex items-center justify-between gap-2 mb-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
             <div className="font-medium text-white truncate">{displayName}</div>
-            {channel.isEncrypted && (
-              <Lock size={12} className="text-emerald-500 shrink-0" />
-            )}
           </div>
           {channel.lastNotification && (
             <div className="text-[10px] text-neutral-500 shrink-0">
